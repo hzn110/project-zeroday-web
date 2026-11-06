@@ -4612,3 +4612,63 @@ body[data-visibility="contrast"] .visibility-option.selected{border-color:var(--
  .visibility-option{transition:none}
 }
 
+
+
+/* BLOCKER B1 / CORAL MEMORY TRACE: sequential outline cues, randomized 3x3 symbols. */
+.memory-sequence{display:grid;gap:16px;width:100%}
+.memory-sequence-top{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line2);padding-bottom:10px}
+.memory-kicker{color:var(--muted);font:700 11px 'Chakra Petch',monospace;letter-spacing:.14em}
+.memory-count{color:var(--yellow);font:800 17px 'Chakra Petch',monospace;font-variant-numeric:tabular-nums}
+.puzzle-area .memory-grid{max-width:410px;width:100%;margin:4px auto;gap:11px}
+.puzzle-area .memory-grid .memory-tile{
+ position:relative;display:grid;place-items:center;
+ width:100%;height:auto;aspect-ratio:1.55/1;min-height:66px;
+ border:2px solid rgba(123,163,182,.42);border-radius:3px;
+ background:linear-gradient(145deg,#101c2b,#080f1a);
+ color:#e3f3ff;font:800 clamp(21px,3vw,29px) 'Chakra Petch',monospace;
+ letter-spacing:.05em;transition:border-color .12s,background .12s,color .12s,box-shadow .12s;
+ user-select:none;-webkit-tap-highlight-color:transparent
+}
+.puzzle-area .memory-grid .memory-tile:hover:not(:disabled):not(.is-cued){
+ border-color:var(--cyan);background:#122638;color:#fff
+}
+.puzzle-area .memory-grid .memory-tile.is-cued,
+.puzzle-area .memory-grid .memory-tile.is-cued:hover{
+ border-color:#ff806d!important;
+ color:#fff6f2!important;
+ background:rgba(255,128,109,.16)!important;
+ box-shadow:0 0 0 2px rgba(255,128,109,.32),inset 0 0 16px rgba(255,128,109,.24),0 0 27px rgba(255,128,109,.65)!important;
+ animation:memoryCoralCue .55s ease-in-out infinite alternate
+}
+@keyframes memoryCoralCue{
+ from{box-shadow:0 0 0 1px rgba(255,128,109,.25),0 0 13px rgba(255,128,109,.4),inset 0 0 9px rgba(255,128,109,.1)}
+ to{box-shadow:0 0 0 3px rgba(255,128,109,.45),0 0 33px rgba(255,128,109,.85),inset 0 0 20px rgba(255,128,109,.25)}
+}
+.puzzle-area .memory-grid .memory-tile.is-correct,
+.puzzle-area .memory-grid .memory-tile.is-correct:hover{
+ border-color:var(--cyan);color:var(--cyan);
+ background:rgba(57,236,241,.13);box-shadow:inset 0 0 16px rgba(57,236,241,.11)
+}
+.puzzle-area .memory-grid .memory-tile.is-wrong,
+.puzzle-area .memory-grid .memory-tile.is-wrong:hover{
+ border-color:#ff476b;color:#fff;background:rgba(255,71,107,.17);box-shadow:0 0 14px rgba(255,71,107,.3)
+}
+.puzzle-area .memory-grid .memory-tile:focus-visible{outline:2px solid var(--yellow);outline-offset:3px}
+.memory-actions{padding-top:3px}
+.memory-actions .micro{color:var(--muted);letter-spacing:.1em}
+.puzzle-area .memory-actions button{min-width:180px;border-color:#ff806d;color:#ffab9f}
+.puzzle-area .memory-actions button:hover:not(:disabled){border-color:#ff806d;color:#fff;background:rgba(255,128,109,.13)}
+.puzzle-area .memory-actions button:disabled{opacity:.6;cursor:wait}
+body[data-visibility="contrast"] .puzzle-area .memory-grid .memory-tile{background:#03060b;border-color:#b9dff5;color:#fff}
+body[data-visibility="contrast"] .puzzle-area .memory-grid .memory-tile.is-cued{border-color:#ff806d;background:#44221e!important;box-shadow:0 0 0 3px #ff806d!important}
+body[data-visibility="contrast"] .puzzle-area .memory-grid .memory-tile.is-correct{border-color:var(--cyan);color:var(--cyan)}
+@media(max-width:500px){
+ .puzzle-area .memory-grid{gap:7px}
+ .puzzle-area .memory-grid .memory-tile{min-height:54px;font-size:22px}
+ .memory-kicker{font-size:10px}
+ .puzzle-area .memory-actions button{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+ .puzzle-area .memory-grid .memory-tile.is-cued{animation:none}
+ .puzzle-area .memory-grid .memory-tile{transition:none}
+}
