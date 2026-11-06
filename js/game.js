@@ -174,7 +174,15 @@ async function submitDevAuth(){
   $('#devAuthFeedback').className='dev-auth-feedback good';
   $('#devAuthFeedback').textContent='ACCESS GRANTED';
   sound('ok');
-  setTimeout(()=>{closeDevAuth();renderDevDashboard();go('developer')},180);
+  setTimeout(()=>{
+   closeDevAuth();
+   go('developer');
+   try{renderDevDashboard()}
+   catch(err){
+    console.error('[DEV DASHBOARD ERROR]',err);
+    devOutput('DEV CONSOLE ERROR // 퍼즐 목록 로딩 중 오류가 발생했습니다. 새로고침 후 다시 시도하세요.','bad');
+   }
+  },180);
  }else{
   devAttempts++;
   $('#devPassword').value='';
