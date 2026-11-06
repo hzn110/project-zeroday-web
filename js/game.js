@@ -945,7 +945,8 @@ function openPause(){if(!game||game.paused||!['map','core'].includes(game.phase)
 $('#pauseBtn').onclick=openPause;$('#overlayClose').onclick=()=>{if(devTest){closeDevPuzzle()}else if(overlayMode==='intel'||overlayMode==='puzzle'){closeOverlay()}else if(overlayMode==='core')openPause()};$('#resultRetry').onclick=()=>go('difficulty');$('#resultRank').onclick=()=>{if(game?.phase==='won'&&!game.saved){$('#nicknameFeedback').className='nickname-feedback bad';$('#nicknameFeedback').textContent='현재 클리어 기록을 랭킹에 남기려면 먼저 닉네임을 등록하세요.';$('#nicknameInput').focus();return}rankDiff=game?.diff||'easy';renderRanking();go('ranking')};
 function parseRankNumber(value,percent=false){
  if(typeof value!=='number'&&typeof value!=='string')return null;
- const raw=String(value).trim().replace(/,/g,'').replace(percent?/%$/g:/(?!)/g,'').trim();
+ let raw=String(value).trim().replace(/,/g,'');
+ if(percent)raw=raw.replace(/%$/,'').trim();
  if(!raw)return null;
  const n=Number(raw);
  return Number.isFinite(n)?n:null;
@@ -966,10 +967,10 @@ function normalizeRankingRecord(record,index){
  };
 }
 function compareRankingRecords(a,b,metric){
- const at=a.trace===null?Infinity:a.trace,bt=b.trace===null?Infinity:b.trace;
- if(metric==='time')return a.time-b.time||b.score-a.score||at-bt||b.index-a.index;
- if(metric==='trace')return at-bt||b.score-a.score||a.time-b.time||b.index-a.index;
- return b.score-a.score||a.time-b.time||at-bt||b.index-a.index;
+ const traceOrder=a.trace===null?(b.trace===null?0:1):b.trace===null?-1:a.trace-b.trace;
+ if(metric==='time')return a.time-b.time||b.score-a.score||traceOrder||b.index-a.index;
+ if(metric==='trace')return traceOrder||b.score-a.score||a.time-b.time||b.index-a.index;
+ return b.score-a.score||a.time-b.time||traceOrder||b.index-a.index;
 }
 function formatRankingTime(seconds){
  const centis=Math.round(seconds*100);
