@@ -1050,7 +1050,7 @@ PUZZLE_BUILDERS.b1=p=>{
   message.textContent=replay?'느린 속도로 다시 점등합니다. 코랄색 테두리가 켜지는 위치를 기억하세요.':'빠른 속도로 점등합니다. 코랄색 테두리가 켜지는 위치를 기억하세요.';
   startBtn.disabled=true;
   startBtn.textContent='점등 중...';
-  later(()=>flashNext(0,id),550);
+  later(()=>flashNext(0,id),replay?400:180);
  };
 };
 // 14 차단: 매 라운드 안전 통로 판별.
