@@ -867,8 +867,9 @@ PUZZLE_BUILDERS.b1=p=>{
     state.textContent='SIGNAL MISMATCH';
     message.textContent='순서가 다릅니다. 첫 번째 칸부터 다시 선택하세요.';
     failPuzzle('점등된 네 칸의 순서와 다릅니다.');
+    const wrongSequenceId=sequenceId;
     later(()=>{
-     if(puzzle!==p||p.solved||!game||game.phase==='failed')return;
+     if(!alive(wrongSequenceId))return;
      b.classList.remove('is-wrong');
      ready=true;
      state.textContent='INPUT READY';
