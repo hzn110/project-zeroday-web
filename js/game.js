@@ -236,7 +236,7 @@ function devClearRankings(){
 }
 function devResetSettings(){
  if(!devAuthenticated)return;
- Object.assign(settings,{sound:true,volume:45,parallax:true,motion:true,largeText:false});
+ Object.assign(settings,{sound:true,volume:45,parallax:true,motion:true,largeText:false,visualMode:'rich'});
  store(SETTINGS,settings);syncSettings();
  devOutput('ADMIN CONFIG // 일반 설정을 기본값으로 복구했습니다.','good');
 }
@@ -309,8 +309,28 @@ document.addEventListener('keydown',e=>{
  }
 });
 
-function syncSettings(){document.body.classList.toggle('large-text',settings.largeText);document.body.classList.toggle('motion-on',settings.motion);$('#setSound').checked=settings.sound;$('#setVolume').value=settings.volume;$('#volumeText').textContent=settings.volume+'%';$('#setParallax').checked=settings.parallax;$('#setMotion').checked=settings.motion;$('#setLargeText').checked=settings.largeText}
+function syncSettings(){document.body.classList.toggle('large-text',settings.largeText);document.body.classList.toggle('motion-on',settings.motion);$('#setSound').checked=settings.sound;$('#setVolume').value=settings.volume;$('#volumeText').textContent=settings.volume+'%';$('#setParallax').checked=settings.parallax;$('#setMotion').checked=settings.motion;$('#setLargeText').checked=settings.largeText;if(typeof applyVisualMode==='function')applyVisualMode(settings.visualMode)}
 syncSettings();
+function applyVisualMode(mode){
+ settings.visualMode=mode==='clean'?'clean':'rich';
+ const clean=settings.visualMode==='clean';
+ document.body.classList.toggle('visual-clean',clean);
+ document.body.classList.toggle('visual-rich',!clean);
+ $('#visualQuickToggle').textContent=clean?'화면: 깔끔함':'화면: 화려함';
+ $('#visualQuickToggle').setAttribute('aria-pressed',String(clean));
+ $('#setVisualRich').checked=!clean;
+ $('#visualModeStatus').textContent=clean?'깔끔한 모드':'화려한 모드';
+ if(clean){$('#parallaxZone .depth').forEach(el=>el.style.transform='none');const map=$('#mapCanvas');if(map){map.style.setProperty('--map-x','0px');map.style.setProperty('--map-y','0px')}}
+ store(SETTINGS,settings);
+}
+settings.visualMode=settings.visualMode==='clean'?'clean':'rich';
+applyVisualMode(settings.visualMode);
+$('#visualQuickToggle').onclick=()=>applyVisualMode(settings.visualMode==='rich'?'clean':'rich');
+$('#setVisualRich').onchange=e=>applyVisualMode(e.target.checked?'rich':'clean');
+const visualWelcome=$('#visualModeWelcome');
+$('[data-visual-choice]').forEach(b=>b.onclick=()=>{applyVisualMode(b.dataset.visualChoice);visualWelcome.classList.add('hidden');document.body.classList.remove('visual-welcome-open');try{localStorage.setItem('pzd_visual_choice_done','1')}catch{}});
+let visualChosen=false;try{visualChosen=localStorage.getItem('pzd_visual_choice_done')==='1'}catch{}
+if(!visualChosen){visualWelcome.classList.remove('hidden');document.body.classList.add('visual-welcome-open')}
 $('#menuStart').onclick=()=>{tutorialStage=0;tutorialSolved=false;renderTutorial();go('tutorial')};
 $('#menuSettings').onclick=()=>{previousScreen='menu';syncSettings();go('settings')};$('#menuRank').onclick=()=>go('ranking');
 function returnToMain(){
@@ -330,7 +350,7 @@ $$('[data-home]').forEach(b=>b.onclick=returnToMain);
 $('#settingsBack').onclick=()=>go(previousScreen);$('#saveSettings').onclick=()=>{settings.sound=$('#setSound').checked;settings.volume=Number($('#setVolume').value);settings.parallax=$('#setParallax').checked;settings.motion=$('#setMotion').checked;settings.largeText=$('#setLargeText').checked;store(SETTINGS,settings);syncSettings();toast('설정이 저장되었습니다.');go(previousScreen)};
 $('#setVolume').oninput=()=>$('#volumeText').textContent=$('#setVolume').value+'%';
 function updateClock(){const t=new Date();$('#menuClock').textContent=[t.getHours(),t.getMinutes(),t.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':')}updateClock();setInterval(updateClock,1000);
-const zone=$('#parallaxZone');let paraX=0,paraY=0,paraRaf=0;zone.addEventListener('pointermove',e=>{if(!settings.parallax||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;const r=zone.getBoundingClientRect();paraX=((e.clientX-r.left)/r.width-.5)*2;paraY=((e.clientY-r.top)/r.height-.5)*2;if(!paraRaf)paraRaf=requestAnimationFrame(moveParallax)});zone.addEventListener('pointerleave',()=>{paraX=0;paraY=0;if(!paraRaf)paraRaf=requestAnimationFrame(moveParallax)});function moveParallax(){paraRaf=0;$$('#parallaxZone .depth').forEach(el=>{const layer=el.classList.contains('v5-back-depth')?.65:el.classList.contains('v5-mid-depth')?1.0:1.42;const base=window.innerWidth<700?8.5:16;const tx=(paraX*base*layer).toFixed(1);const ty=(paraY*(base*.78)*layer).toFixed(1);const scale=(1+layer*0.012).toFixed(3);el.style.transform=`translate3d(${tx}px,${ty}px,0) scale(${scale})`})}
+const zone=$('#parallaxZone');let paraX=0,paraY=0,paraRaf=0;zone.addEventListener('pointermove',e=>{if(settings.visualMode==='clean'||!settings.parallax||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;const r=zone.getBoundingClientRect();paraX=((e.clientX-r.left)/r.width-.5)*2;paraY=((e.clientY-r.top)/r.height-.5)*2;if(!paraRaf)paraRaf=requestAnimationFrame(moveParallax)});zone.addEventListener('pointerleave',()=>{paraX=0;paraY=0;if(!paraRaf)paraRaf=requestAnimationFrame(moveParallax)});function moveParallax(){paraRaf=0;$$('#parallaxZone .depth').forEach(el=>{const layer=el.classList.contains('v5-back-depth')?.65:el.classList.contains('v5-mid-depth')?1.0:1.42;const base=window.innerWidth<700?8.5:16;const tx=(paraX*base*layer).toFixed(1);const ty=(paraY*(base*.78)*layer).toFixed(1);const scale=(1+layer*0.012).toFixed(3);el.style.transform=`translate3d(${tx}px,${ty}px,0) scale(${scale})`})}
 
 /* V3.3 main console — fictional real-time telemetry only; no network calls. */
 const menuDesc=$('#menuHoverHint'),menuCode=$('#menuHoverCode');
@@ -386,7 +406,7 @@ function boxifyMenuNodes(){
 }
 function pulseMenuNodeGlitch(){
  const pool=[...$$('#menu .v5-node.v6-major, #menu .v5-node.v6-medium')];
- if(!pool.length || screen!=='menu' || document.hidden || !settings.motion) return;
+ if(!pool.length || screen!=='menu' || document.hidden || !settings.motion || settings.visualMode==='clean') return;
  const node=pool[Math.floor(Math.random()*pool.length)];
  node.classList.add('v6-glitch');
  setTimeout(()=>node.classList.remove('v6-glitch'), 180+Math.random()*260);
@@ -396,7 +416,7 @@ setInterval(pulseMenuNodeGlitch, 1200);
 const menuLogo=$('#menu .v4-glitch-logo');
 let glitchTimer=null;
 function triggerMenuGlitch(){
- if(screen!=='menu'||!settings.motion||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ if(screen!=='menu'||!settings.motion||settings.visualMode==='clean'||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
  menuLogo.classList.remove('v4-glitching');void menuLogo.offsetWidth;menuLogo.classList.add('v4-glitching');
  setTimeout(()=>menuLogo.classList.remove('v4-glitching'),430);
 }
@@ -478,7 +498,7 @@ setInterval(()=>{if(screen==='menu'&&!document.hidden){const el=$('#v5DiagBytes'
 zone.addEventListener('pointermove',e=>{const r=zone.getBoundingClientRect();$('#v4CoordX').textContent=((e.clientX-r.left)/r.width*2-1).toFixed(3);$('#v4CoordY').textContent=((e.clientY-r.top)/r.height*2-1).toFixed(3)});
 
 const mapCanvas=$('.map-canvas');
-mapCanvas.addEventListener('pointermove',e=>{if(!settings.parallax||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;const r=mapCanvas.getBoundingClientRect();mapCanvas.style.setProperty('--map-x',((e.clientX-r.left)/r.width-.5)*15+'px');mapCanvas.style.setProperty('--map-y',((e.clientY-r.top)/r.height-.5)*11+'px')});
+mapCanvas.addEventListener('pointermove',e=>{if(settings.visualMode==='clean'||!settings.parallax||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;const r=mapCanvas.getBoundingClientRect();mapCanvas.style.setProperty('--map-x',((e.clientX-r.left)/r.width-.5)*15+'px');mapCanvas.style.setProperty('--map-y',((e.clientY-r.top)/r.height-.5)*11+'px')});
 mapCanvas.addEventListener('pointerleave',()=>{mapCanvas.style.setProperty('--map-x','0px');mapCanvas.style.setProperty('--map-y','0px')});
 
 function renderTutorial(){
@@ -759,7 +779,26 @@ $('#nicknameSave').onclick=registerNickname;
 $('#nicknameInput').addEventListener('keydown',e=>{if(e.key==='Enter')registerNickname()});
 function openPause(){if(!game||game.paused||!['map','core'].includes(game.phase))return;game.paused=true;pauseActive=true;let shade=document.createElement('div');shade.className='overlay';shade.id='pauseShade';shade.style.zIndex='1200';shade.innerHTML=`<div class="panel" style="width:min(470px,92vw);padding:30px;text-align:center"><div class="section-brow">작전 일시정지</div><h2 style="margin:12px 0">잠시 정지했습니다</h2><p class="subtle" style="margin:14px 0 24px">이 화면에서는 시간과 추적도가 증가하지 않습니다.</p><div class="action-row center-actions"><button id="pauseResume" class="bright">작전 재개 ▶</button><button id="pauseExit" class="outline danger">메인으로 종료</button></div></div>`;document.body.appendChild(shade);$('#pauseResume').onclick=()=>{game.paused=false;pauseActive=false;shade.remove();frameTime=performance.now()};$('#pauseExit').onclick=()=>{returnToMain()}}
 $('#pauseBtn').onclick=openPause;$('#overlayClose').onclick=()=>{if(devTest){closeDevPuzzle()}else if(overlayMode==='intel'||overlayMode==='puzzle'){closeOverlay()}else if(overlayMode==='core')openPause()};$('#resultRetry').onclick=()=>go('difficulty');$('#resultRank').onclick=()=>{if(game?.phase==='won'&&!game.saved){$('#nicknameFeedback').className='nickname-feedback bad';$('#nicknameFeedback').textContent='현재 클리어 기록을 랭킹에 남기려면 먼저 닉네임을 등록하세요.';$('#nicknameInput').focus();return}rankDiff=game?.diff||'easy';renderRanking();go('ranking')};
-function renderRanking(){let rec=read(STORAGE,[]);if(!Array.isArray(rec))rec=[];rec=rec.filter(r=>r&&r.diff===rankDiff&&Number.isFinite(+r.score)&&Number.isFinite(+r.time));rec.sort((a,b)=>rankSort==='score'?b.score-a.score||a.time-b.time:rankSort==='time'?a.time-b.time||b.score-a.score:a.trace-b.trace||a.time-b.time);$('#rankingRows').innerHTML=rec.length?rec.slice(0,20).map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.nickname||'ANON')}</td><td>${esc(r.grade)}</td><td>${fmt(r.score)}</td><td>${mmss(r.time)}</td><td>${r.trace}%</td><td>${esc(r.date)}</td></tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:35px">저장된 기록이 없습니다. 첫 번째 침투를 완료해 보세요.</td></tr>';$$('[data-sort]').forEach(b=>b.classList.toggle('selected',b.dataset.sort===rankSort));$$('[data-rankdiff]').forEach(b=>b.classList.toggle('selected',b.dataset.rankdiff===rankDiff))}
+function renderRanking(){
+ const all=read(STORAGE,[]);
+ const valid=Array.isArray(all)?all.filter(r=>r&&r.diff===rankDiff&&Number.isFinite(Number(r.score))&&Number.isFinite(Number(r.time))&&Number.isFinite(Number(r.trace))&&Number(r.time)>=0&&Number(r.trace)>=0):[];
+ const comparators={
+  score:(a,b)=>Number(b.score)-Number(a.score)||Number(a.time)-Number(b.time)||Number(a.trace)-Number(b.trace),
+  time:(a,b)=>Number(a.time)-Number(b.time)||Number(b.score)-Number(a.score)||Number(a.trace)-Number(b.trace),
+  trace:(a,b)=>Number(a.trace)-Number(b.trace)||Number(a.time)-Number(b.time)||Number(b.score)-Number(a.score)
+ };
+ const cmp=comparators[rankSort]||comparators.score;
+ const best=new Map();
+ for(const record of valid){const key=String(record.nickname||'ANON').trim().toLocaleLowerCase();if(!best.has(key)||cmp(record,best.get(key))<0)best.set(key,record)}
+ const records=[...best.values()].sort(cmp);
+ const descriptions={score:'최고 점수 · 점수가 높은 순 (동점 시 빠른 시간)',time:'최단 시간 · 소요 시간이 짧은 순 (동점 시 높은 점수)',trace:'최저 추적도 · 추적도가 낮은 순 (동점 시 빠른 시간)'};
+ $('#rankingCriteria').textContent=descriptions[rankSort]||descriptions.score;
+ $('#rankingSummary').textContent=`${rankDiff==='easy'?'쉬움':'어려움'} / ${valid.length}회 플레이 · ${records.length}명 등록 · 부문별 닉네임 최고 기록만 표시`;
+ $('#rankingRows').innerHTML=records.length?records.slice(0,20).map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.nickname||'ANON')}</td><td>${esc(r.grade||'—')}</td><td>${fmt(Number(r.score))}</td><td>${mmss(Number(r.time))}</td><td>${Number(r.trace)}%</td><td>${esc(r.date||'—')}</td></tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:35px">이 부문의 등록 기록이 없습니다. 첫 번째 침투를 완료해 보세요.</td></tr>';
+ $$('[data-sort]').forEach(b=>b.classList.toggle('selected',b.dataset.sort===rankSort));
+ $$('[data-rankdiff]').forEach(b=>b.classList.toggle('selected',b.dataset.rankdiff===rankDiff));
+ $$('[data-rankcol]').forEach(th=>th.classList.toggle('rank-active-col',th.dataset.rankcol===rankSort));
+}
 $$('[data-sort]').forEach(b=>b.onclick=()=>{rankSort=b.dataset.sort;renderRanking()});$$('[data-rankdiff]').forEach(b=>b.onclick=()=>{rankDiff=b.dataset.rankdiff;renderRanking()});
 function tick(now){let delta=Math.max(0,(now-frameTime)/1000);frameTime=now;if(game&&!game.paused&&!guideOpen&&['map','core'].includes(game.phase)){game.remaining=Math.max(0,game.remaining-delta);game.elapsed+=delta;game.trace=Math.min(100,game.trace+delta*(game.diff==='easy'?.047:.081));if(game.remaining<=0)endGame(false,'제한 시간이 모두 지났습니다.');else if(game.trace>=100)endGame(false,'추적도가 100%에 도달했습니다.');if(now-lastHud>150){lastHud=now;updateHud()}}requestAnimationFrame(tick)}requestAnimationFrame(tick);
 const PUZZLE_BUILDERS={};
