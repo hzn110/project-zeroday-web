@@ -4392,3 +4392,40 @@ body.dev-gameplay #game{padding-bottom:58px}
  .visual-welcome-choices button{min-height:90px}
  .visual-setting-control{gap:7px}
 }
+
+
+/* v4.17: clean mode is an alternate readable interface, not an empty stage. */
+.visual-clean #menu .v5-neon-sign,
+.visual-clean #menu .v45-fault-layer,
+.visual-clean #menu .v5-sector-field,
+.visual-clean #menu .v5-topo-faint,
+.visual-clean #menu .v5-stage::before,
+.visual-clean #menu .v5-stage::after,
+.visual-clean #menu .v5-node-halo,
+.visual-clean #menu .v5-skyline-wrap,
+.visual-clean #menu .v5-floor-grid,
+.visual-clean #menu .v5-light-lines,
+.visual-clean #menu .v5-city-glow,
+.visual-clean #menu .v5-city-block,
+.visual-clean #menu .v5-sweep-line,
+.visual-clean #menu .v5-vertical-ray,
+.visual-clean #menu .v5-particle {display:none!important}
+.visual-clean #menu .v5-stage{background:#091522!important}
+.visual-clean #menu .v5-network-wrap{border:1px solid rgba(111,145,167,.27);background:rgba(8,22,36,.65);box-shadow:none!important}
+.visual-clean #menu .v5-network-depth{transform:none!important}
+.visual-clean #menu .v5-svg{opacity:1!important;filter:none!important}
+.visual-clean #menu .v5-link{display:inline!important;stroke-width:2!important;opacity:.8!important;filter:none!important;animation:none!important}
+.visual-clean #menu .v5-node-outer{stroke-width:2.4!important;filter:none!important}
+.visual-clean #menu .v5-node-inner{opacity:1!important;filter:none!important}
+.visual-clean #menu .v5-label{font-weight:800!important;opacity:1!important;text-shadow:none!important}
+.visual-clean #menu .v5-map-header{background:rgba(8,21,34,.94);border-bottom:1px solid rgba(108,146,170,.24)}
+.visual-clean #menu .v5-big-label{filter:none!important;text-shadow:none!important}
+.visual-clean #menu .v5-local-diag{opacity:.85}
+.visual-clean #menu .v4-glitch-logo{animation:none!important}
+.visual-clean #menu .v5-stage .depth{transition:none!important;transform:none!important}
+.visual-clean #menu .v5-topo-links{opacity:1!important}
+.visual-clean #menu .v5-topo-nodes{opacity:1!important}
+.visual-clean .visual-quick-toggle{background:#173044;color:#f4f7fa;border-color:#80a7ba}
+.visual-quick-toggle{font-size:12px;font-weight:800;min-height:36px;letter-spacing:.02em}
+.visual-quick-toggle::before{content:'DISPLAY';font:800 9px 'Courier New',monospace;letter-spacing:.08em;color:#91a5b7;margin-right:10px}
+@media(max-width:700px){.visual-quick-toggle::before{display:none}}
