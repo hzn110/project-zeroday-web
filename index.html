@@ -206,6 +206,53 @@
   </aside>
  </div>
 </section>
+<!-- Pre-game setup: theme -> readability -> tutorial. -->
+<section id="themeSelect" class="screen setup-screen">
+ <div class="simple-top"><div class="brand mini"><span>PROJECT</span><b>:</b>ZERO-DAY</div><button id="themeSelectBack" class="outline small" type="button">메인으로</button></div>
+ <div class="center-screen setup-center">
+  <div class="setup-progress" aria-label="시작 설정 1단계"><span class="current">01 / THEME</span><span>02 / VISIBILITY</span><span>03 / TUTORIAL</span></div>
+  <div class="section-brow">VISUAL CONFIGURATION / STEP 01</div>
+  <h2 class="page-title">화면 테마 선택</h2>
+  <p class="subtle center-text setup-intro">원하는 인터페이스를 선택하세요. 선택 즉시 전체 화면의 테마가 바뀝니다.</p>
+  <div class="setup-choice-grid theme-setup-grid" role="group" aria-label="게임 시작 테마 선택">
+   <button type="button" class="theme-option setup-choice selected" data-theme-option="console" aria-pressed="true">
+    <span class="theme-preview theme-preview-console" aria-hidden="true"><i class="theme-mini-node n1"></i><i class="theme-mini-node n2"></i><i class="theme-mini-node n3"></i><i class="theme-mini-link"></i><span>NETWORK / LIVE</span></span>
+    <strong>SYSTEM CONSOLE</strong><small>기본 인터페이스 · 네트워크 지도와 실시간 HUD</small>
+    <span class="setup-choice-indicator">이 테마 선택</span>
+   </button>
+   <button type="button" class="theme-option setup-choice" data-theme-option="polish" aria-pressed="false">
+    <span class="theme-preview theme-preview-polish" aria-hidden="true"><span class="theme-mini-type">BREACH.<br>ESCAPE.<br><em>ZERO-DAY.</em></span><i class="theme-mini-frame"></i></span>
+    <strong>HUD POLISH</strong><small>클래식 인터페이스 · 네온 타이포그래피</small>
+    <span class="setup-choice-indicator">이 테마 선택</span>
+   </button>
+  </div>
+  <div class="setup-actions"><button type="button" id="themeSelectNext" class="bright big">다음 · 가시성 선택 <span>→</span></button></div>
+ </div>
+</section>
+<section id="visibilitySelect" class="screen setup-screen">
+ <div class="simple-top"><div class="brand mini"><span>PROJECT</span><b>:</b>ZERO-DAY</div><button id="visibilitySelectBack" class="outline small" type="button">테마 선택으로</button></div>
+ <div class="center-screen setup-center">
+  <div class="setup-progress" aria-label="시작 설정 2단계"><span class="complete">01 / THEME</span><span class="current">02 / VISIBILITY</span><span>03 / TUTORIAL</span></div>
+  <div class="section-brow">VISUAL CONFIGURATION / STEP 02</div>
+  <h2 class="page-title">화면 가시성 선택</h2>
+  <p class="subtle center-text setup-intro">텍스트와 배경의 대비를 조절합니다. 퍼즐 난이도와 점수에는 영향을 주지 않습니다.</p>
+  <div class="setup-choice-grid visibility-setup-grid" role="group" aria-label="게임 시작 가시성 선택">
+   <button type="button" class="visibility-option setup-choice selected" data-visibility-option="balanced" aria-pressed="true">
+    <span class="visibility-preview visibility-preview-balanced" aria-hidden="true"><i>SYS / 01</i><b>NODE ACCESS</b><span>연결 상태 확인</span><em>CONNECTED</em></span>
+    <strong>기본</strong><small>원래 디자인과 시각 효과 유지</small><span class="setup-choice-indicator">이 모드 선택</span>
+   </button>
+   <button type="button" class="visibility-option setup-choice" data-visibility-option="clear" aria-pressed="false">
+    <span class="visibility-preview visibility-preview-clear" aria-hidden="true"><i>SYS / 01</i><b>NODE ACCESS</b><span>연결 상태 확인</span><em>CONNECTED</em></span>
+    <strong>선명</strong><small>장식 효과를 줄이고 텍스트를 더 뚜렷하게</small><span class="setup-choice-indicator">이 모드 선택</span>
+   </button>
+   <button type="button" class="visibility-option setup-choice" data-visibility-option="contrast" aria-pressed="false">
+    <span class="visibility-preview visibility-preview-contrast" aria-hidden="true"><i>SYS / 01</i><b>NODE ACCESS</b><span>연결 상태 확인</span><em>CONNECTED</em></span>
+    <strong>고대비</strong><small>최대한 명확한 글자·경계선, 효과 최소화</small><span class="setup-choice-indicator">이 모드 선택</span>
+   </button>
+  </div>
+  <div class="setup-actions"><button type="button" id="visibilitySelectNext" class="bright big">설정 완료 · 튜토리얼 <span>→</span></button></div>
+ </div>
+</section>
 <section id="tutorial" class="screen"><div class="simple-top"><div class="brand mini"><span>PROJECT</span><b>:</b>ZERO-DAY</div><button class="outline small" data-home>메인으로</button></div><div class="center-screen"><div class="stepper"><b id="tutorialStepLabel">기본 훈련 01 / 03</b><span>안내를 따라 진행하세요</span></div><div class="panel tutorial-panel"><div class="section-brow">처음 접속한 플레이어를 위한 안내</div><h2 id="tutorialTitle"></h2><p id="tutorialDescription" class="lead"></p><div id="tutorialVisual" class="tutorial-visual"></div><div class="action-row"><button id="tutorialBack" class="outline">이전</button><div class="grow"></div><button id="tutorialSkip" class="outline">훈련 건너뛰기 →</button><button id="tutorialNext" class="bright">다음 단계 <span>→</span></button></div></div></div></section>
 <section id="difficulty" class="screen"><div class="simple-top"><div class="brand mini"><span>PROJECT</span><b>:</b>ZERO-DAY</div><button id="diffBack" class="outline small">이전 화면</button></div><div class="center-screen"><div class="section-brow">진입 전 마지막 확인</div><h2 class="page-title">난이도를 선택하세요</h2><p class="subtle center-text">중앙 서버까지 침투할 준비를 마치세요. 게임 도중 난이도를 변경할 수 없습니다.</p><div class="difficulty-grid"><button class="difficulty-card selected" data-difficulty="easy"><span class="corner-label">01 / 초급</span><h3>쉬움</h3><div class="diff-codename">ROOKIE // 풋내기 침투자</div><p>아직 시스템이 당신을 모른다. 흔적을 읽고 침투 방식을 익히세요.</p><div class="diff-metric">제한 시간 <strong>5분</strong></div><div class="diff-metric">추적 위험 <strong>낮음</strong></div><span class="card-select">선택됨 ✓</span></button><button class="difficulty-card" data-difficulty="hard"><span class="corner-label">02 / 숙련</span><h3>어려움</h3><div class="diff-codename">GHOST // 전문 침투자</div><p>시스템이 알아채기 전에 끝낸다. 판단이 늦으면 흔적만 남습니다.</p><div class="diff-metric">제한 시간 <strong>3분</strong></div><div class="diff-metric">추적 위험 <strong>높음</strong></div><span class="card-select">선택하기 →</span></button></div><button id="launchGame" class="bright big">네트워크 진입 <span>▶</span></button></div></section>
 <section id="game" class="screen"><div class="game-frame"><header class="hud-header"><div class="game-mark"><span>ZERO-DAY</span><small>침투 작전</small></div><div class="hud-target"><small>현재 목표</small><b id="hudObjective">일반 노드 3개 확보</b></div><div class="hud-time"><small>남은 시간</small><b id="hudTime">12:00</b></div><div class="hud-trace"><div class="row-between"><small>추적도</small><b id="hudTrace">0%</b></div><div class="track"><i id="hudTraceBar" style="width:0%"></i></div></div><button id="pauseBtn" class="outline small">일시정지 <span>Ⅱ</span></button></header>
@@ -292,6 +339,14 @@
     <span class="theme-preview theme-preview-polish" aria-hidden="true"><span class="theme-mini-type">BREACH.<br>ESCAPE.<br><em>ZERO-DAY.</em></span><i class="theme-mini-frame"></i></span>
     <strong>HUD POLISH</strong><small>클래식 · 네온 타이포그래피</small>
    </button>
+  </div>
+ </div>
+ <div class="visibility-picker">
+  <div class="theme-picker-heading"><b>화면 가시성</b><p>텍스트 대비와 시각 효과를 조절합니다. 선택 즉시 미리보기가 적용됩니다.</p></div>
+  <div class="visibility-settings-grid" role="group" aria-label="설정 화면 가시성 선택">
+   <button type="button" class="visibility-option selected" data-visibility-option="balanced" aria-pressed="true"><span class="visibility-preview visibility-preview-balanced" aria-hidden="true"><i>SYS / 01</i><b>NODE ACCESS</b><span>연결 상태 확인</span><em>CONNECTED</em></span><strong>기본</strong><small>원래 화면 유지</small></button>
+   <button type="button" class="visibility-option" data-visibility-option="clear" aria-pressed="false"><span class="visibility-preview visibility-preview-clear" aria-hidden="true"><i>SYS / 01</i><b>NODE ACCESS</b><span>연결 상태 확인</span><em>CONNECTED</em></span><strong>선명</strong><small>텍스트 가독성 향상</small></button>
+   <button type="button" class="visibility-option" data-visibility-option="contrast" aria-pressed="false"><span class="visibility-preview visibility-preview-contrast" aria-hidden="true"><i>SYS / 01</i><b>NODE ACCESS</b><span>연결 상태 확인</span><em>CONNECTED</em></span><strong>고대비</strong><small>배경 효과 최소화</small></button>
   </div>
  </div>
  <div class="setting-row"><div><b>효과음</b><p>버튼 클릭, 성공과 실패, 추적 경고음을 재생합니다.</p></div><label class="switch"><input id="setSound" type="checkbox" checked><span></span></label></div><div class="setting-row"><div><b>효과음 음량</b><p>전자음과 경고음의 소리 크기</p></div><input id="setVolume" type="range" min="0" max="100" value="45"><span id="volumeText">45%</span></div><div class="setting-row"><div><b>움직이는 배경</b><p>마우스를 따라 움직이는 입체 효과</p></div><label class="switch"><input id="setParallax" type="checkbox" checked><span></span></label></div><div class="setting-row"><div><b>화면 흔들림과 글리치</b><p>위험 상황의 강한 시각 효과를 조절합니다.</p></div><label class="switch"><input id="setMotion" type="checkbox" checked><span></span></label></div><div class="setting-row"><div><b>글자 크기 확대</b><p>규칙과 퍼즐 안내를 더 크게 표시합니다.</p></div><label class="switch"><input id="setLargeText" type="checkbox"><span></span></label></div><div class="action-row"><div class="grow"></div><button id="saveSettings" class="bright">설정 저장</button></div></div></div></section>
