@@ -316,11 +316,11 @@ function applyVisualMode(mode){
  const clean=settings.visualMode==='clean';
  document.body.classList.toggle('visual-clean',clean);
  document.body.classList.toggle('visual-rich',!clean);
- $('#visualQuickToggle').textContent=clean?'화면: 깔끔함':'화면: 화려함';
+ $('#visualQuickToggle').textContent=clean?'화면: 깔끔함 · OFF':'화면: 화려함 · ON';
  $('#visualQuickToggle').setAttribute('aria-pressed',String(clean));
  $('#setVisualRich').checked=!clean;
  $('#visualModeStatus').textContent=clean?'깔끔한 모드':'화려한 모드';
- if(clean){$$('#parallaxZone .depth').forEach(el=>el.style.transform='none');const map=$('#mapCanvas');if(map){map.style.setProperty('--map-x','0px');map.style.setProperty('--map-y','0px')}}
+ if(clean){$('#parallaxZone .depth').forEach(el=>el.style.transform='none');const map=$('#mapCanvas');if(map){map.style.setProperty('--map-x','0px');map.style.setProperty('--map-y','0px')}}else{$('#parallaxZone .depth').forEach(el=>el.style.removeProperty('transform'));const map=$('#mapCanvas');if(map){map.style.removeProperty('--map-x');map.style.removeProperty('--map-y')}}
  store(SETTINGS,settings);
 }
 settings.visualMode=settings.visualMode==='clean'?'clean':'rich';
