@@ -42,6 +42,61 @@ const VALID_VISIBILITY=new Set(['balanced','clear','contrast']);
 settings.theme=VALID_THEMES.has(settings.theme)?settings.theme:'console';
 settings.visibility=VALID_VISIBILITY.has(settings.visibility)?settings.visibility:'balanced';
 let pendingTheme=settings.theme,pendingVisibility=settings.visibility;
+
+/* Developer puzzle balance overrides: per-browser, validated, and never mixed with player settings. */
+const PUZZLE_TUNING_STORAGE='pzd_v32_puzzle_balance';
+const TUNE_BASE_FIELDS=[
+ {key:'reward',label:'성공 점수',unit:'점',min:0,max:20000,step:50},
+ {key:'traceEasy',label:'오답 TRACE / Easy',unit:'%',min:0,max:100,step:1},
+ {key:'traceHard',label:'오답 TRACE / Hard',unit:'%',min:0,max:100,step:1},
+ {key:'missScore',label:'오답 점수 차감',unit:'점',min:0,max:2000,step:10}
+];
+const TUNE_SPECIAL_FIELDS={
+ b1:[
+  {key:'firstCueEasy',label:'최초 점등 / Easy',unit:'ms',min:80,max:2000,step:10},
+  {key:'firstGapEasy',label:'최초 점등 간격 / Easy',unit:'ms',min:0,max:1000,step:5},
+  {key:'firstCueHard',label:'최초 점등 / Hard',unit:'ms',min:80,max:2000,step:10},
+  {key:'firstGapHard',label:'최초 점등 간격 / Hard',unit:'ms',min:0,max:1000,step:5},
+  {key:'replayCueEasy',label:'재생 점등 / Easy',unit:'ms',min:80,max:3000,step:10},
+  {key:'replayGapEasy',label:'재생 점등 간격 / Easy',unit:'ms',min:0,max:1500,step:10},
+  {key:'replayCueHard',label:'재생 점등 / Hard',unit:'ms',min:80,max:3000,step:10},
+  {key:'replayGapHard',label:'재생 점등 간격 / Hard',unit:'ms',min:0,max:1500,step:10},
+  {key:'replayCost',label:'다시 보기 점수 차감',unit:'점',min:0,max:2000,step:10}
+ ],
+ b2:[{key:'nextDelay',label:'다음 통로 표시 지연',unit:'ms',min:50,max:3000,step:10}],
+ b4:[
+  {key:'cycleEasy',label:'신호 왕복 시간 / Easy',unit:'ms',min:1000,max:20000,step:100},
+  {key:'cycleHard',label:'신호 왕복 시간 / Hard',unit:'ms',min:1000,max:20000,step:100}
+ ]
+};
+function tuneFields(key){return [...TUNE_BASE_FIELDS,...(TUNE_SPECIAL_FIELDS[key]||[])]}
+function tuneDefaults(key){
+ const rank=PUZZLES[key]?.rank??2;
+ const defaults={reward:[0,700,1100,1550,2100][rank],traceEasy:3+rank*2,traceHard:6+rank*2,missScore:90};
+ if(key==='b1')Object.assign(defaults,{
+  firstCueEasy:260,firstGapEasy:80,firstCueHard:190,firstGapHard:60,
+  replayCueEasy:1150,replayGapEasy:350,replayCueHard:900,replayGapHard:270,replayCost:100
+ });
+ if(key==='b2')defaults.nextDelay=230;
+ if(key==='b4')Object.assign(defaults,{cycleEasy:6000,cycleHard:4000});
+ return defaults;
+}
+const puzzleTuning=Object.create(null);
+const storedTuning=read(PUZZLE_TUNING_STORAGE,{});
+if(storedTuning&&typeof storedTuning==='object'&&!Array.isArray(storedTuning)){
+ for(const key of [...Object.keys(PUZZLES),'xor']){
+  const raw=storedTuning[key];if(!raw||typeof raw!=='object'||Array.isArray(raw))continue;
+  const cleaned={};
+  for(const field of tuneFields(key)){
+   const value=raw[field.key];
+   if(typeof value==='number'&&Number.isInteger(value)&&value>=field.min&&value<=field.max)cleaned[field.key]=value;
+  }
+  if(Object.keys(cleaned).length)puzzleTuning[key]=cleaned;
+ }
+}
+function puzzleTune(key){return {...tuneDefaults(key),...(puzzleTuning[key]||{})}}
+function persistPuzzleTune(){store(PUZZLE_TUNING_STORAGE,puzzleTuning)}
+
 let screen='menu',previousScreen='menu',diff='easy',tutorialStage=0,tutorialSolved=false,game=null,puzzle=null,overlayMode='',pauseActive=false,toastTimer=0,audioCtx=null,frameTime=performance.now(),lastHud=0,activeTimers=[];
 let rankSort='score',rankDiff='easy';
 let devAuthenticated=false,devAttempts=0,devLockUntil=0,devTest=false,devTestKey='',devResults={},devGameplay=false;
@@ -139,6 +194,63 @@ function devPuzzleEntries(){
 function devTypeLabel(type){return {normal:'연결 노드 / NETWORK',data:'데이터 노드 / DATA',security:'보안 노드 / SECURITY',blocker:'차단 노드 / BLOCKER',core:'CORE / FINAL'}[type]||type}
 function devTypeColor(type){return {normal:'#77b8d6',data:'#ff776e',security:'#ee83b7',blocker:'#9caff0',core:'#f2d36b'}[type]||'#79acff'}
 function devBuilderReady(key){return key==='xor'||typeof PUZZLE_BUILDERS?.[key]==='function'}
+let devTuneSelectedKey='b1';
+function renderDevTuneEditor(){
+ if(!devAuthenticated)return;
+ const select=$('#devTunePuzzle');
+ if(!select)return;
+ const entries=devPuzzleEntries();
+ if(!entries.some(item=>item.key===devTuneSelectedKey))devTuneSelectedKey='b1';
+ select.innerHTML=entries.map(({key,meta})=>`<option value="${key}">${key.toUpperCase()} · ${esc(meta.name)}</option>`).join('');
+ select.value=devTuneSelectedKey;
+ const balance=puzzleTune(devTuneSelectedKey);
+ const fields=items=>items.map(field=>`<label class="dev-tune-field"><span>${esc(field.label)}</span><div class="dev-tune-input"><input type="number" inputmode="numeric" data-tune-field="${field.key}" value="${balance[field.key]}" min="${field.min}" max="${field.max}" step="${field.step}" required><em>${field.unit}</em></div></label>`).join('');
+ const special=TUNE_SPECIAL_FIELDS[devTuneSelectedKey]||[];
+ $('#devTuneFields').innerHTML=`<div class="dev-tune-fieldset"><h4>성공 보상 / 오답 페널티</h4><div class="dev-tune-grid">${fields(TUNE_BASE_FIELDS)}</div></div>${special.length?`<div class="dev-tune-fieldset"><h4>속도 / 타이밍 / 추가 비용</h4><div class="dev-tune-grid">${fields(special)}</div></div>`:''}`;
+ const changed=Object.keys(puzzleTuning[devTuneSelectedKey]||{}).length;
+ $('#devTuneStatus').textContent=changed?`사용자 설정 ${changed}개`:'기본 설정';
+ $('#devTuneStatus').classList.toggle('custom',changed>0);
+ $('#devTuneFeedback').className='dev-tuning-feedback';
+ $('#devTuneFeedback').textContent='변경값을 입력한 후 저장하세요. 다음 퍼즐 실행부터 적용됩니다.';
+}
+function saveDevTune(){
+ if(!devAuthenticated)return;
+ const key=devTuneSelectedKey,defaults=tuneDefaults(key),overrides={};
+ for(const field of tuneFields(key)){
+  const input=$('#devTuneFields').querySelector(`[data-tune-field="${field.key}"]`);
+  if(!input)return;
+  const raw=input.value.trim(),value=Number(raw);
+  if(!raw||!Number.isInteger(value)||value<field.min||value>field.max){
+   $('#devTuneFeedback').className='dev-tuning-feedback error';
+   $('#devTuneFeedback').textContent=`${field.label}: ${field.min}~${field.max} 사이의 정수를 입력하세요.`;
+   input.focus();return;
+  }
+  if(value!==defaults[field.key])overrides[field.key]=value;
+ }
+ if(Object.keys(overrides).length)puzzleTuning[key]=overrides;
+ else delete puzzleTuning[key];
+ persistPuzzleTune();
+ renderDevDashboard();
+ $('#devTuneFeedback').className='dev-tuning-feedback success';
+ $('#devTuneFeedback').textContent=`${key.toUpperCase()} 밸런스 저장 완료. 다음 퍼즐 실행부터 적용됩니다.`;
+ devOutput(`BALANCE SAVED // ${key.toUpperCase()} · 변경 항목 ${Object.keys(overrides).length}개`,'good');
+}
+function resetDevTuneOne(){
+ if(!devAuthenticated)return;
+ const key=devTuneSelectedKey;
+ delete puzzleTuning[key];
+ persistPuzzleTune();renderDevDashboard();
+ $('#devTuneFeedback').className='dev-tuning-feedback success';
+ $('#devTuneFeedback').textContent=`${key.toUpperCase()} 퍼즐의 기본값을 복구했습니다.`;
+}
+function resetDevTuneAll(){
+ if(!devAuthenticated||!confirm('17개 퍼즐의 사용자 지정 점수와 속도를 모두 기본값으로 되돌릴까요?'))return;
+ for(const key of Object.keys(puzzleTuning))delete puzzleTuning[key];
+ persistPuzzleTune();renderDevDashboard();
+ $('#devTuneFeedback').className='dev-tuning-feedback success';
+ $('#devTuneFeedback').textContent='전체 퍼즐 밸런스를 기본값으로 복구했습니다.';
+ devOutput('BALANCE RESET // 모든 퍼즐 설정이 기본값으로 복구되었습니다.','good');
+}
 function renderDevDashboard(){
  if(!devAuthenticated)return;
  const entries=devPuzzleEntries(),types=['normal','data','security','blocker','core'];
@@ -156,12 +268,18 @@ function renderDevDashboard(){
    return `<article class="dev-card ${state}" style="--dev-accent:${devTypeColor(type)}">
     <div class="dev-card-top"><span class="dev-key">${key.toUpperCase()} // RANK ${meta.rank}</span><span class="dev-state">${label}</span></div>
     <h3>${esc(meta.name)}</h3><p>${esc(meta.rule)}</p>
-    <div class="dev-meta"><span>${'★'.repeat(meta.rank)}${'☆'.repeat(4-meta.rank)}</span><span>${devBuilderReady(key)?'BUILDER OK':'BUILDER MISSING'}</span></div>
-    <button class="outline small" data-dev-puzzle="${key}">${state==='pass'?'다시 테스트':'퍼즐 실행'} →</button>
+    <div class="dev-meta"><span>${'★'.repeat(meta.rank)}${'☆'.repeat(4-meta.rank)}</span><span>${Object.keys(puzzleTuning[key]||{}).length?'CUSTOM BALANCE':devBuilderReady(key)?'BUILDER OK':'BUILDER MISSING'}</span></div>
+    <div class="dev-card-actions"><button class="outline small" data-dev-puzzle="${key}">${state==='pass'?'다시 테스트':'퍼즐 실행'} →</button><button class="outline small" data-dev-tune="${key}">밸런스 조정</button></div>
    </article>`;
   }).join('')}</div></section>`;
  }).join('');
- $$('[data-dev-puzzle]').forEach(btn=>btn.onclick=()=>openDevPuzzle(btn.dataset.devPuzzle));
+ $('[data-dev-puzzle]').forEach(btn=>btn.onclick=()=>openDevPuzzle(btn.dataset.devPuzzle));
+ $('[data-dev-tune]').forEach(btn=>btn.onclick=()=>{
+  devTuneSelectedKey=btn.dataset.devTune;
+  renderDevTuneEditor();
+  $('#devTuningPanel').scrollIntoView({behavior:'smooth',block:'start'});
+ });
+ renderDevTuneEditor();
 }
 
 function devOutput(message,kind=''){
@@ -299,6 +417,10 @@ $('#devNetworkScan').onclick=devValidateNetworks;
 $('#devSeedRanking').onclick=devSeedRankings;
 $('#devClearRanking').onclick=devClearRankings;
 $('#devResetSettings').onclick=devResetSettings;
+$('#devTunePuzzle').onchange=()=>{devTuneSelectedKey=$('#devTunePuzzle').value;renderDevTuneEditor()};
+$('#devTuneSave').onclick=saveDevTune;
+$('#devTuneResetOne').onclick=resetDevTuneOne;
+$('#devTuneResetAll').onclick=resetDevTuneAll;
 $('#devAddTime').onclick=()=>{if(devGameplay&&game){game.remaining=Math.min(game.duration+600,game.remaining+60);updateHud();toast('DEV: 제한시간 +60초')}};
 $('#devZeroTrace').onclick=()=>{if(devGameplay&&game){game.trace=0;updateHud();toast('DEV: TRACE 0%')}};
 $('#devAddScore').onclick=()=>{if(devGameplay&&game){game.score+=1000;updateHud();toast('DEV: SCORE +1000')}};
@@ -771,13 +893,13 @@ function openPuzzleSelect(n){
  if(!game||game.phase!=='map'||!n||n.cleared)return;
  let m=META[n.type],keys=Object.keys(PUZZLES).filter(k=>PUZZLES[k].type===n.type);
  let cards=keys.map((key,i)=>{
-  let p=PUZZLES[key], prof=puzzleChoiceProfile(key), pen=failPenalty(p.rank);
+  let p=PUZZLES[key], prof=puzzleChoiceProfile(key), pen=failPenalty(p.rank,key);
   return `<button class="protocol-card" data-protocol="${key}" style="--protocol-accent:${m.color}" aria-label="${p.name} 선택">
    <span class="protocol-index">PROTOCOL 0${i+1}</span>
    <span class="protocol-name">${p.name}</span>
    <span class="protocol-role">${prof[0]}</span>
    <span class="protocol-rule">${p.rule}</span>
-   <span class="protocol-metrics"><span>난이도 <b>${'★'.repeat(p.rank)}${'☆'.repeat(4-p.rank)}</b></span><span>성공 <b>+${fmt(pointValue(p.rank))}</b></span><span>실패 <b>TRACE +${pen}%</b></span></span>
+   <span class="protocol-metrics"><span>난이도 <b>${'★'.repeat(p.rank)}${'☆'.repeat(4-p.rank)}</b></span><span>성공 <b>+${fmt(pointValue(p.rank,key))}</b></span><span>실패 <b>TRACE +${pen}%</b></span></span>
    <span class="protocol-pro"><em>+</em> ${prof[1]}</span>
    <span class="protocol-con"><em>−</em> ${prof[2]}</span>
    <span class="protocol-cta">이 프로토콜 선택 →</span>
@@ -790,19 +912,19 @@ function openPuzzleSelect(n){
  $$('[data-protocol]').forEach(card=>card.onclick=()=>{let key=card.dataset.protocol;n.key=key;startPuzzle(n,key,false)});
 }
 function openCoreIntel(){if(!isCoreAccessible())return;let more=Math.max(0,6-game.cleared);openOverlay('중앙 서버 / 최종 진입 확인','중앙 서버 진입 준비',`<p class="intel-text">일반 노드 <b style="color:var(--yellow)">${game.cleared}개</b> 확보 완료. 중앙 서버에 들어가면 일반 노드로 돌아올 수 없습니다.</p><div class="intel-stats"><div><small>남은 시간</small><b>${mmss(game.remaining)}</b></div><div><small>추적도</small><b>${Math.floor(game.trace)}%</b></div><div><small>보호 효과</small><b>${game.shield}회</b></div><div><small>추가 공략 가능</small><b>${more}개</b></div></div><div class="core-preview"><div>01<strong>데이터</strong></div><div>02<strong>연결</strong></div><div>03<strong>보안</strong></div><div>04<strong>차단</strong></div><div>05<strong>최종 XOR</strong></div></div><div class="information">각 유형에서 <b>일반 노드에 나오지 않은 퍼즐</b>이 1개씩 등장합니다. 다섯 단계를 연속으로 완료해야 성공합니다.</div>`,`<button class="outline" id="coreBack">추가 노드 공략</button><button class="bright" id="coreConfirm">중앙 서버 진입 ▶</button>`,'intel');$('#coreBack').onclick=closeOverlay;$('#coreConfirm').onclick=()=>{game.phase='core';game.coreStage=0;game.coreBits=[];log('중앙 서버 진입. 철수 불가. 5단계 보안 해제 시작.','warn');renderCorePuzzle()}}
-function pointValue(rank){return [0,700,1100,1550,2100][rank]}
-function failPenalty(rank){return (game?.diff==='hard'?6:3)+rank*2}
-function failPuzzle(msg){if(!game||!puzzle||puzzle.solved)return;game.misses++;let pen=failPenalty(puzzle.meta.rank);if(game.shield>0){game.shield--;pen=Math.max(1,pen-7);toast('차단 노드 보호 효과 적용! 추적도 페널티 감소.')}game.trace=Math.min(100,game.trace+pen);game.score=Math.max(0,game.score-90);setFeedback(`오답: ${msg} · 추적도 +${pen}%`,'warn');sound('bad');log(`${puzzle.meta.name}: 오류 발생, 추적도 +${pen}%`,'warn');updateHud();if(game.trace>=100)endGame(false,'추적도가 100%에 도달했습니다.')}
+function pointValue(rank,key){return key?puzzleTune(key).reward:[0,700,1100,1550,2100][rank]}
+function failPenalty(rank,key){return key?puzzleTune(key)[game?.diff==='hard'?'traceHard':'traceEasy']:(game?.diff==='hard'?6:3)+rank*2}
+function failPuzzle(msg){if(!game||!puzzle||puzzle.solved)return;game.misses++;let pen=failPenalty(puzzle.meta.rank,puzzle.key);if(game.shield>0){game.shield--;pen=Math.max(0,pen-7);toast('차단 노드 보호 효과 적용! 추적도 페널티 감소.')}game.trace=Math.min(100,game.trace+pen);game.score=Math.max(0,game.score-puzzleTune(puzzle.key).missScore);setFeedback(`오답: ${msg} · 추적도 +${pen}%`,'warn');sound('bad');log(`${puzzle.meta.name}: 오류 발생, 추적도 +${pen}%`,'warn');updateHud();if(game.trace>=100)endGame(false,'추적도가 100%에 도달했습니다.')}
 function setFeedback(msg,kind=''){let el=$('#puzzleFeedback');if(el){el.textContent=msg;el.className='feedback'+(kind?' '+kind:'')}}
 function setPuzzleContent(html){$('#puzzleMount').innerHTML=html}
 function pButton(text,handler,opts={}){let b=document.createElement('button');b.textContent=text;if(opts.className)b.className=opts.className;if(opts.small)b.style.fontSize='12px';b.onclick=handler;return b}
 function puzzleArea(){return $('#puzzleMount')}
 function puzzleGrid(buttons,columns=4){const grid=document.createElement('div');grid.className=`puzzle-grid cols${columns}`;buttons.forEach(x=>grid.appendChild(x));return grid}
 function targetHTML(label,codes){return `<div class="target-line"><span class="label">${esc(label)}</span>${codes.map(c=>`<span class="code-chip">${esc(c)}</span>`).join('')}</div>`}
-function displayPuzzle(key,node,isCore){clearPuzzleTimers();const meta=PUZZLES[key]||{type:'core',name:'최종 암호 해제',rank:2,rule:'서로 다른 두 비트는 1, 같은 두 비트는 0입니다.',hints:['왼쪽에서 오른쪽으로 한 자리씩 비교하세요.','1과 0은 서로 다르므로 1입니다.','같은 수는 0, 다른 수는 1입니다.']};let uid=Math.random();puzzle={key,node,isCore,meta,uid,solved:false,hintLevel:0};let stage=isCore?`<div class="core-progress">${Array.from({length:5},(_,i)=>`<span class="${i<game.coreStage?'done':i===game.coreStage?'now':''}"></span>`).join('')}</div>`:'';let subtitle=isCore?'중앙 서버 보안 '+(game.coreStage+1)+' / 5':'장치 '+node.id+' / '+META[node.type].name;openOverlay(isCore?'중앙 서버 / 단계별 보안 해제':'노드 공략 / 퍼즐',meta.name,`${stage}<div class="puzzle-header"><div class="puzzle-number">${subtitle}</div><h3>${meta.name}</h3><p>${meta.rule}</p></div><div class="puzzle-area" id="puzzleMount"></div><div class="hint-panel hidden" id="puzzleHint"></div><div id="puzzleFeedback" class="feedback" style="margin-top:12px">화면의 규칙을 읽고 조작을 시작하세요.</div>`,`<span class="puzzle-risk">오답: 추적도 +${failPenalty(meta.rank)}%</span><span class="puzzle-reward">성공 +${fmt(pointValue(meta.rank))}점</span><div class="grow"></div><button class="outline" id="hintBtn">힌트 보기 (0/3)</button><button class="outline" id="puzzlePause">Ⅱ 일시정지</button>${isCore?'':'<button class="outline" id="puzzleBack">지도 복귀</button>'}`,isCore?'core':'puzzle');$('#hintBtn').onclick=showHint;$('#puzzlePause').onclick=openPause;if(!isCore)$('#puzzleBack').onclick=()=>{closeOverlay();log('선택한 노드의 공략을 잠시 중단했습니다.')};if(!PUZZLE_BUILDERS[key]&&key!=='xor'){setPuzzleContent('<p>퍼즐을 불러올 수 없습니다.</p>');return} (PUZZLE_BUILDERS[key]||buildXor)(puzzle)}
+function displayPuzzle(key,node,isCore){clearPuzzleTimers();const meta=PUZZLES[key]||{type:'core',name:'최종 암호 해제',rank:2,rule:'서로 다른 두 비트는 1, 같은 두 비트는 0입니다.',hints:['왼쪽에서 오른쪽으로 한 자리씩 비교하세요.','1과 0은 서로 다르므로 1입니다.','같은 수는 0, 다른 수는 1입니다.']};let uid=Math.random();puzzle={key,node,isCore,meta,uid,solved:false,hintLevel:0};let stage=isCore?`<div class="core-progress">${Array.from({length:5},(_,i)=>`<span class="${i<game.coreStage?'done':i===game.coreStage?'now':''}"></span>`).join('')}</div>`:'';let subtitle=isCore?'중앙 서버 보안 '+(game.coreStage+1)+' / 5':'장치 '+node.id+' / '+META[node.type].name;openOverlay(isCore?'중앙 서버 / 단계별 보안 해제':'노드 공략 / 퍼즐',meta.name,`${stage}<div class="puzzle-header"><div class="puzzle-number">${subtitle}</div><h3>${meta.name}</h3><p>${meta.rule}</p></div><div class="puzzle-area" id="puzzleMount"></div><div class="hint-panel hidden" id="puzzleHint"></div><div id="puzzleFeedback" class="feedback" style="margin-top:12px">화면의 규칙을 읽고 조작을 시작하세요.</div>`,`<span class="puzzle-risk">오답: 추적도 +${failPenalty(meta.rank,key)}%</span><span class="puzzle-reward">성공 +${fmt(pointValue(meta.rank,key))}점</span><div class="grow"></div><button class="outline" id="hintBtn">힌트 보기 (0/3)</button><button class="outline" id="puzzlePause">Ⅱ 일시정지</button>${isCore?'':'<button class="outline" id="puzzleBack">지도 복귀</button>'}`,isCore?'core':'puzzle');$('#hintBtn').onclick=showHint;$('#puzzlePause').onclick=openPause;if(!isCore)$('#puzzleBack').onclick=()=>{closeOverlay();log('선택한 노드의 공략을 잠시 중단했습니다.')};if(!PUZZLE_BUILDERS[key]&&key!=='xor'){setPuzzleContent('<p>퍼즐을 불러올 수 없습니다.</p>');return} (PUZZLE_BUILDERS[key]||buildXor)(puzzle)}
 function startPuzzle(node,key,isCore){if(!game||!['map','core'].includes(game.phase))return;displayPuzzle(key,node,isCore)}
 function showHint(){if(!puzzle||puzzle.solved)return;if(puzzle.hintLevel>=3){toast('모든 힌트를 확인했습니다.');return}let lv=++puzzle.hintLevel,pen=lv===1?0:lv===2?100:200;game.hints++;game.score=Math.max(0,game.score-pen);$('#hintBtn').textContent=`힌트 보기 (${lv}/3)`;let el=$('#puzzleHint');el.classList.remove('hidden');el.innerHTML=`<b>힌트 ${lv}/3</b> · ${esc(puzzle.meta.hints[lv-1])}${pen?` <span style="color:var(--red)">(-${pen}점)</span>`:' (무료)'}`;updateHud()}
-function solvePuzzle(){if(!puzzle||puzzle.solved)return;puzzle.solved=true;let solved=puzzle;game.score+=pointValue(solved.meta.rank);setFeedback(devTest?'DEV TEST PASS // 퍼즐 정상 완료':'정답입니다! 보안 장치 접근이 승인되었습니다.');sound('ok');$$('#puzzleMount button').forEach(x=>x.disabled=true);if(devTest){devResults[devTestKey]='pass';$('#overlayFooter').innerHTML=`<span class="puzzle-reward">QA RESULT: PASS</span><div class="grow"></div><button class="bright" id="devTestDone">테스트 완료 → 목록</button>`;$('#devTestDone').onclick=closeDevPuzzle;return}later(()=>{if(puzzle!==solved||!game||game.phase==='failed')return;if(solved.isCore){let pos=game.coreStage;if(pos<4){game.coreBits.push({cipher:rnd(0,1),key:rnd(0,1)});game.score+=380;game.coreStage++;log(`중앙 서버 ${pos+1}단계 완료. 다음 보안 구간 개방.`,'good');renderCoreStageDone(pos)}else{game.score+=1800;endGame(true)}}else{const n=solved.node;n.cleared=true;game.cleared++;game.lastNodeId=n.id;applyNodeReward(n);log(`${META[n.type].name} 확보 · ${solved.meta.name} 해결!`,'good');closeOverlay();updateHud();renderMap();toast(`${META[n.type].name} 확보! +${fmt(pointValue(solved.meta.rank))}점`);if(game.cleared===3)later(()=>{if(game?.phase==='map')toast(isCoreAccessible()?'CORE 직결 경로 확보! 중앙 서버 진입 가능.':'CORE 권한 확보. 연결 경로를 따라 중앙 서버까지 이동하세요.')},500)}},520)}
+function solvePuzzle(){if(!puzzle||puzzle.solved)return;puzzle.solved=true;let solved=puzzle;game.score+=pointValue(solved.meta.rank,solved.key);setFeedback(devTest?'DEV TEST PASS // 퍼즐 정상 완료':'정답입니다! 보안 장치 접근이 승인되었습니다.');sound('ok');$$('#puzzleMount button').forEach(x=>x.disabled=true);if(devTest){devResults[devTestKey]='pass';$('#overlayFooter').innerHTML=`<span class="puzzle-reward">QA RESULT: PASS</span><div class="grow"></div><button class="bright" id="devTestDone">테스트 완료 → 목록</button>`;$('#devTestDone').onclick=closeDevPuzzle;return}later(()=>{if(puzzle!==solved||!game||game.phase==='failed')return;if(solved.isCore){let pos=game.coreStage;if(pos<4){game.coreBits.push({cipher:rnd(0,1),key:rnd(0,1)});game.score+=380;game.coreStage++;log(`중앙 서버 ${pos+1}단계 완료. 다음 보안 구간 개방.`,'good');renderCoreStageDone(pos)}else{game.score+=1800;endGame(true)}}else{const n=solved.node;n.cleared=true;game.cleared++;game.lastNodeId=n.id;applyNodeReward(n);log(`${META[n.type].name} 확보 · ${solved.meta.name} 해결!`,'good');closeOverlay();updateHud();renderMap();toast(`${META[n.type].name} 확보! +${fmt(pointValue(solved.meta.rank,solved.key))}점`);if(game.cleared===3)later(()=>{if(game?.phase==='map')toast(isCoreAccessible()?'CORE 직결 경로 확보! 중앙 서버 진입 가능.':'CORE 권한 확보. 연결 경로를 따라 중앙 서버까지 이동하세요.')},500)}},520)}
 function applyNodeReward(n){switch(n.type){case 'normal':game.reveal=true;break;case 'data':game.intel++;game.coreClue++;game.score+=250;break;case 'security':game.trace=Math.max(0,game.trace-12);break;case 'blocker':game.shield++;break}}
 function renderCoreStageDone(stage){clearPuzzleTimers();let lines=['데이터 서버에서 암호 정보 확보','통신 경로를 재설정했습니다','인증 시스템을 통과했습니다','방어 장치의 차단을 해제했습니다'];let stageNames=['데이터','연결','보안','차단','최종 XOR'];openOverlay('중앙 서버 / 보안 계층 완료',`${stage+1}단계 해제 완료`,`<div class="core-progress">${Array.from({length:5},(_,i)=>`<span class="${i<game.coreStage?'done':i===game.coreStage?'now':''}"></span>`).join('')}</div><div class="finish-card"><div class="symbol">✓</div><h3>${lines[stage]}</h3><p>이전 단계의 보안 정보가 최종 암호 해제에 사용됩니다.</p><p style="color:var(--cyan);margin-top:14px">다음 단계: ${stageNames[stage+1]}</p></div>`,`<button class="outline" id="coreHold">Ⅱ 일시정지</button><button class="bright" id="coreContinue">${stage===3?'최종 암호 해제':'다음 보안 단계'} →</button>`,'core');$('#coreHold').onclick=openPause;$('#coreContinue').onclick=renderCorePuzzle}
 function renderCorePuzzle(){if(!game||game.phase!=='core')return;let keys=['data','normal','security','blocker'];let key=game.coreStage===4?'xor':game.reserved[keys[game.coreStage]];let fakeNode={id:'중앙 서버',type:keys[game.coreStage]||'core'};displayPuzzle(key,fakeNode,true)}
@@ -845,12 +967,13 @@ PUZZLE_BUILDERS.s4=p=>{let ips=shuffle(['10.0.0.8','10.0.0.21','172.16.1.4','192
 PUZZLE_BUILDERS.b1=p=>{
  const symbols=shuffle(['1','2','3','4','5','A','B','C','D']);
  const path=shuffle(Array.from({length:9},(_,i)=>i)).slice(0,4);
- let cueMs=game.diff==='hard'?320:440;
- let gapMs=game.diff==='hard'?110:150;
+ const balance=puzzleTune('b1');
+ let cueMs=game.diff==='hard'?balance.firstCueHard:balance.firstCueEasy;
+ let gapMs=game.diff==='hard'?balance.firstGapHard:balance.firstGapEasy;
  let pos=0,ready=false,plays=0,sequenceId=0;
  setPuzzleContent(`<div class="memory-sequence">
   <div class="memory-sequence-top"><span class="memory-kicker">MEMORY TRACE / 4 SIGNALS</span><span id="memoryProgress" class="memory-count" aria-live="polite">0 / 4</span></div>
-  <div class="quiz-instruction" id="memoryMessage" aria-live="polite">숫자와 문자로 표시된 아홉 칸을 확인하고 <strong>패턴 보기</strong>를 누르세요. 처음에는 빠르게 점등되며, 다시 보기는 100점을 사용해 느리게 볼 수 있습니다.</div>
+  <div class="quiz-instruction" id="memoryMessage" aria-live="polite">숫자와 문자로 표시된 아홉 칸을 확인하고 <strong>패턴 보기</strong>를 누르세요. 처음에는 빠르게 점등되며, 다시 보기는 ${fmt(balance.replayCost)}점을 사용해 느리게 볼 수 있습니다.</div>
   <div id="memoryGrid" class="puzzle-grid cols3 narrow-grid memory-grid" role="group" aria-label="3행 3열 기억 패널"></div>
   <div class="quiz-actions memory-actions"><span id="memoryState" class="micro">SIGNAL READY</span><button id="memoryStart" type="button">패턴 보기 (빠르게)</button></div>
  </div>`);
@@ -896,7 +1019,7 @@ PUZZLE_BUILDERS.b1=p=>{
    state.textContent='INPUT READY';
    message.textContent='방금 점등된 네 칸을 처음부터 순서대로 누르세요.';
    startBtn.disabled=false;
-   startBtn.textContent='느리게 다시 보기 (-100점)';
+   startBtn.textContent='느리게 다시 보기 (-'+fmt(balance.replayCost)+'점)';
    return;
   }
   const tile=bs[path[step]];
@@ -912,30 +1035,30 @@ PUZZLE_BUILDERS.b1=p=>{
   if(!game||puzzle!==p||p.solved||!['map','core'].includes(game.phase))return;
   const replay=plays>0;
   if(replay){
-   game.score=Math.max(0,game.score-100);
+   game.score=Math.max(0,game.score-balance.replayCost);
    updateHud();
   }
-  cueMs=replay?(game.diff==='hard'?900:1150):(game.diff==='hard'?320:440);
-  gapMs=replay?(game.diff==='hard'?270:350):(game.diff==='hard'?110:150);
+  cueMs=replay?(game.diff==='hard'?balance.replayCueHard:balance.replayCueEasy):(game.diff==='hard'?balance.firstCueHard:balance.firstCueEasy);
+  gapMs=replay?(game.diff==='hard'?balance.replayGapHard:balance.replayGapEasy):(game.diff==='hard'?balance.firstGapHard:balance.firstGapEasy);
   plays++;
   const id=++sequenceId;
   ready=false;
   pos=0;
   bs.forEach(tile=>tile.classList.remove('is-cued','is-correct','is-wrong'));
   progress.textContent='● ● ● ●';
-  state.textContent=replay?'SLOW REPLAY / -100 PT':'FAST SEQUENCE';
+  state.textContent=replay?'SLOW REPLAY / -'+balance.replayCost+' PT':'FAST SEQUENCE';
   message.textContent=replay?'느린 속도로 다시 점등합니다. 코랄색 테두리가 켜지는 위치를 기억하세요.':'빠른 속도로 점등합니다. 코랄색 테두리가 켜지는 위치를 기억하세요.';
   startBtn.disabled=true;
   startBtn.textContent='점등 중...';
-  later(()=>flashNext(0,id),550);
+  later(()=>flashNext(0,id),replay?400:180);
  };
 };
 // 14 차단: 매 라운드 안전 통로 판별.
-PUZZLE_BUILDERS.b2=p=>{let round=0,total=3;setPuzzleContent(`<div class="target-line"><span class="label">안전 통로 선택</span><strong id="safeProgress" style="color:var(--yellow)">1 / ${total}</strong></div><div class="quiz-instruction">작동 중인 빨간 차단 장치를 피하고 <strong>청록색 통로</strong>를 선택하세요.</div><div id="safePaths" class="puzzle-grid cols3"></div>`);function showRound(){let good=rnd(0,2),holder=$('#safePaths');holder.innerHTML='';$('#safeProgress').textContent=(round+1)+' / '+total;for(let i=0;i<3;i++){let ok=i===good;let b=pButton(`통로 ${i+1}\n${ok?'안전':'차단 중'}`,()=>{if(!ok){failPuzzle('차단 장치가 작동 중인 통로입니다.');return}round++;if(round>=total)solvePuzzle();else{setFeedback('안전 통과! 다음 구간을 확인하세요.');later(showRound,230)}});b.style.borderColor=ok?'rgba(57,236,241,.65)':'rgba(255,71,107,.60)';b.style.color=ok?'#39ecf1':'#ff9cad';holder.appendChild(b)}}showRound()};
+PUZZLE_BUILDERS.b2=p=>{let round=0,total=3;setPuzzleContent(`<div class="target-line"><span class="label">안전 통로 선택</span><strong id="safeProgress" style="color:var(--yellow)">1 / ${total}</strong></div><div class="quiz-instruction">작동 중인 빨간 차단 장치를 피하고 <strong>청록색 통로</strong>를 선택하세요.</div><div id="safePaths" class="puzzle-grid cols3"></div>`);function showRound(){let good=rnd(0,2),holder=$('#safePaths');holder.innerHTML='';$('#safeProgress').textContent=(round+1)+' / '+total;for(let i=0;i<3;i++){let ok=i===good;let b=pButton(`통로 ${i+1}\n${ok?'안전':'차단 중'}`,()=>{if(!ok){failPuzzle('차단 장치가 작동 중인 통로입니다.');return}round++;if(round>=total)solvePuzzle();else{setFeedback('안전 통과! 다음 구간을 확인하세요.');later(showRound,puzzleTune('b2').nextDelay)}});b.style.borderColor=ok?'rgba(57,236,241,.65)':'rgba(255,71,107,.60)';b.style.color=ok?'#39ecf1':'#ff9cad';holder.appendChild(b)}}showRound()};
 // 15 차단: 세 독립 장치의 0/1/2 전력 수준 맞춤.
 PUZZLE_BUILDERS.b3=p=>{let targets=Array.from({length:3},()=>rnd(0,2)),actual=[0,0,0];setPuzzleContent(`${targetHTML('목표 전력',targets.map(x=>x+'단계'))}<div class="quiz-instruction">각 장치의 버튼을 눌러 목표 전력과 같게 설정하세요. (0 → 1 → 2 → 0)</div><div id="powerDevices" class="puzzle-grid cols3"></div><div class="quiz-actions"><span class="micro">세 장치가 모두 같아야 합니다.</span><button id="powerSubmit">설정 확인</button></div>`);const holder=$('#powerDevices'),buttons=[];for(let i=0;i<3;i++){let b=pButton(`장치 ${i+1}\n현재 0단계`,()=>{actual[i]=(actual[i]+1)%3;b.textContent=`장치 ${i+1}\n현재 ${actual[i]}단계`;b.classList.toggle('selected',actual[i]===targets[i])});buttons.push(b);holder.appendChild(b)}$('#powerSubmit').onclick=()=>{if(actual.every((n,i)=>n===targets[i]))solvePuzzle();else failPuzzle('목표 전력과 현재 수치가 다른 장치가 있습니다.')}};
 // 16 차단: 실제로 이동하는 게이지를 안전 구역에서 멈춘다.
-PUZZLE_BUILDERS.b4=p=>{let total=game.diff==='easy'?2:3,hits=0,phase=rnd(0,100)/100,dir=1,safeLeft=game.diff==='easy'?36:42,safeRight=game.diff==='easy'?64:58;setPuzzleContent(`<div class="target-line"><span class="label">보안벽 통과</span><strong id="timingHits" style="color:var(--yellow)">0 / ${total}</strong></div><div class="quiz-instruction">신호 점이 노란 영역 안에 들어오는 순간 버튼을 누르세요.</div><div style="position:relative;height:52px;background:#132434;border:1px solid #365263;margin:20px 3px"><div style="position:absolute;top:0;bottom:0;left:${safeLeft}%;width:${safeRight-safeLeft}%;background:rgba(234,255,0,.18);border-left:2px solid var(--yellow);border-right:2px solid var(--yellow)"></div><div id="timingDot" style="position:absolute;top:0;bottom:0;width:5px;background:var(--cyan);box-shadow:0 0 14px var(--cyan);left:5%"></div></div><div class="quiz-actions"><span class="micro">현재 위치 <strong id="timingPosition">0%</strong></span><button id="timingPress">안전 구간 통과</button></div>`);recurring(()=>{phase+=dir*(game.diff==='easy'?.012:.018);if(phase>=1){phase=1;dir=-1}else if(phase<=0){phase=0;dir=1}let x=phase*100;$('#timingDot')?.style.setProperty('left',x+'%');if($('#timingPosition'))$('#timingPosition').textContent=Math.round(x)+'%'},36);$('#timingPress').onclick=()=>{let current=phase*100;if(current<safeLeft||current>safeRight){failPuzzle('안전 영역에 신호가 있을 때 통과해야 합니다.');return}hits++;$('#timingHits').textContent=hits+' / '+total;if(hits>=total)solvePuzzle();else setFeedback(`안전 통과 성공! ${total-hits}번 남았습니다.`)}};
+PUZZLE_BUILDERS.b4=p=>{let total=game.diff==='easy'?2:3,hits=0,phase=rnd(0,100)/100,dir=1,safeLeft=game.diff==='easy'?36:42,safeRight=game.diff==='easy'?64:58;setPuzzleContent(`<div class="target-line"><span class="label">보안벽 통과</span><strong id="timingHits" style="color:var(--yellow)">0 / ${total}</strong></div><div class="quiz-instruction">신호 점이 노란 영역 안에 들어오는 순간 버튼을 누르세요.</div><div style="position:relative;height:52px;background:#132434;border:1px solid #365263;margin:20px 3px"><div style="position:absolute;top:0;bottom:0;left:${safeLeft}%;width:${safeRight-safeLeft}%;background:rgba(234,255,0,.18);border-left:2px solid var(--yellow);border-right:2px solid var(--yellow)"></div><div id="timingDot" style="position:absolute;top:0;bottom:0;width:5px;background:var(--cyan);box-shadow:0 0 14px var(--cyan);left:5%"></div></div><div class="quiz-actions"><span class="micro">현재 위치 <strong id="timingPosition">0%</strong></span><button id="timingPress">안전 구간 통과</button></div>`);recurring(()=>{phase+=dir*(72/(game.diff==='easy'?puzzleTune('b4').cycleEasy:puzzleTune('b4').cycleHard));if(phase>=1){phase=1;dir=-1}else if(phase<=0){phase=0;dir=1}let x=phase*100;$('#timingDot')?.style.setProperty('left',x+'%');if($('#timingPosition'))$('#timingPosition').textContent=Math.round(x)+'%'},36);$('#timingPress').onclick=()=>{let current=phase*100;if(current<safeLeft||current>safeRight){failPuzzle('안전 영역에 신호가 있을 때 통과해야 합니다.');return}hits++;$('#timingHits').textContent=hits+' / '+total;if(hits>=total)solvePuzzle();else setFeedback(`안전 통과 성공! ${total-hits}번 남았습니다.`)}};
 // 17 중앙 서버 전용: 유일하게 XOR 연산을 사용하는 4비트 최종 퍼즐.
 function buildXor(p){let bits=game.coreBits;if(bits.length!==4){setPuzzleContent('<p>이전 보안 단계의 키 정보가 부족합니다.</p>');return}let answers=[0,0,0,0],cipher=bits.map(x=>x.cipher),keys=bits.map(x=>x.key);setPuzzleContent(`<div class="quiz-instruction"><b style="color:var(--yellow)">XOR 규칙:</b> 두 숫자가 같으면 <b>0</b>, 다르면 <b>1</b>입니다. 네 칸의 결과를 직접 눌러 완성하세요.</div><div class="target-line" style="justify-content:center">0 ⊕ 0 = 0　 /　 0 ⊕ 1 = 1　 /　 1 ⊕ 0 = 1　 /　 1 ⊕ 1 = 0</div><div class="bit-row"><b>암호 데이터</b>${cipher.map(x=>`<div class="bit-box">${x}</div>`).join('')}<b>해독 열쇠</b>${keys.map(x=>`<div class="bit-box">${x}</div>`).join('')}<b>내 해독 결과</b>${answers.map((x,i)=>`<button class="bit-box output" id="xorBit${i}" aria-label="${i+1}번째 결과 비트">${x}</button>`).join('')}</div><div class="quiz-actions" style="justify-content:center;margin-top:16px"><span class="micro">각 칸을 클릭하면 0과 1이 바뀝니다.</span><button id="xorCheck">최종 암호 확인</button></div>`);for(let i=0;i<4;i++)$('#xorBit'+i).onclick=()=>{answers[i]=1-answers[i];$('#xorBit'+i).textContent=answers[i]};$('#xorCheck').onclick=()=>{if(answers.every((n,i)=>n===(cipher[i]^keys[i])))solvePuzzle();else failPuzzle('XOR 결과가 맞지 않습니다. 같은 비트는 0, 다른 비트는 1입니다.')}}
 window.ZERO_DAY_STATUS=()=>game?{phase:game.phase,difficulty:game.diff,cleared:game.cleared,coreStage:game.coreStage,trace:+game.trace.toFixed(1),remaining:Math.ceil(game.remaining),score:game.score,currentNode:game.lastNodeId,routeTargets:routeTargets(),overlay:overlayMode,puzzle:puzzle?.key??null,reserved:{...game.reserved},nodes:game.nodes.map(n=>({id:n.id,type:n.type,key:n.key,cleared:n.cleared}))}:null;

@@ -1,4 +1,4 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050810"><title>PROJECT:ZERO-DAY | SYSTEM CONSOLE v4.16</title><link rel="stylesheet" href="css/styles.css"></head>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050810"><title>PROJECT:ZERO-DAY | SYSTEM CONSOLE v4.20</title><link rel="stylesheet" href="css/styles.css?v=4.20.0"></head>
 <body>
 <div class="noise" aria-hidden="true"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
 <button id="nodeGuideToggle" class="node-guide-trigger" type="button" aria-label="노드 도움말 열기" aria-haspopup="dialog" aria-controls="nodeGuideDialog" title="노드 안내와 공략 팁">?<span>노드 안내</span></button>
@@ -306,6 +306,30 @@
       <div id="devToolOutput" class="dev-tool-output">DEV CONSOLE READY // 도구를 선택하면 검사 결과가 여기에 표시됩니다.</div>
     </section>
 
+    <section class="dev-tuning-panel" id="devTuningPanel" aria-labelledby="devTuneTitle">
+      <div class="dev-tuning-head">
+        <div>
+          <div class="section-brow">GAME BALANCE / LIVE CONFIG</div>
+          <h3 id="devTuneTitle">퍼즐 밸런스 조정</h3>
+          <p>17개 퍼즐의 성공 점수, 오답 페널티와 시간 기반 퍼즐의 속도를 직접 조정합니다.</p>
+        </div>
+        <span class="dev-tuning-tag">LOCAL CONFIG</span>
+      </div>
+      <div class="dev-tuning-select-row">
+        <label for="devTunePuzzle">조정할 퍼즐</label>
+        <select id="devTunePuzzle" aria-label="밸런스를 수정할 퍼즐"></select>
+        <span id="devTuneStatus" class="dev-tuning-status">기본 설정</span>
+      </div>
+      <div id="devTuneFields" class="dev-tuning-fields"></div>
+      <div class="dev-tuning-actions">
+        <button class="bright" id="devTuneSave" type="button">변경 사항 저장</button>
+        <button class="outline" id="devTuneResetOne" type="button">이 퍼즐 기본값 복구</button>
+        <button class="outline danger" id="devTuneResetAll" type="button">전체 밸런스 초기화</button>
+      </div>
+      <p id="devTuneFeedback" class="dev-tuning-feedback" role="status" aria-live="polite">저장한 값은 이 브라우저에 유지되며, 다음 퍼즐 실행부터 적용됩니다.</p>
+      <p class="dev-tuning-note">점등 시간은 ms(밀리초) 단위입니다. 1000ms = 1초. 신호 왕복 시간이 짧을수록 움직임이 빠릅니다. 변경값은 다른 기기와 자동 공유되지 않습니다.</p>
+    </section>
+
     <div class="dev-catalog-head"><div class="section-brow">PUZZLE CATALOG / 17 TEST CASES</div><h3>전체 퍼즐 테스트</h3></div>
     <div id="devPuzzleGroups"></div>
   </div>
@@ -360,4 +384,4 @@
   <button id="devBackConsole">DEV 콘솔 복귀</button>
 </div>
 <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="게임 화면"><div class="overlay-shell"><div class="overlay-head"><div><div id="overlayEyebrow" class="section-brow">노드 분석</div><h2 id="overlayTitle">접근 준비</h2></div><button id="overlayClose" class="outline small" aria-label="닫기">✕ 닫기</button></div><div id="overlayBody" class="overlay-body"></div><div id="overlayFooter" class="overlay-footer"></div></div></div>
-<script src="js/game.js"></script></body></html>
+<script src="js/game.js?v=4.20.0"></script></body></html>
