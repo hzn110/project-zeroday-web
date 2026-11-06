@@ -36,10 +36,12 @@ const STORAGE='pzd_v32_rankings';const SETTINGS='pzd_v32_settings';
 const sessionFallback={};
 const read=(key,fallback)=>{try{let x=JSON.parse(localStorage.getItem(key));return x??sessionFallback[key]??fallback}catch{return sessionFallback[key]??fallback}};
 const store=(key,v)=>{sessionFallback[key]=v;try{localStorage.setItem(key,JSON.stringify(v))}catch{}};
-const settings=Object.assign({sound:true,volume:45,parallax:true,motion:true,largeText:false,theme:'console'},read(SETTINGS,{}));
+const settings=Object.assign({sound:true,volume:45,parallax:true,motion:true,largeText:false,theme:'console',visibility:'balanced'},read(SETTINGS,{}));
 const VALID_THEMES=new Set(['console','polish']);
+const VALID_VISIBILITY=new Set(['balanced','clear','contrast']);
 settings.theme=VALID_THEMES.has(settings.theme)?settings.theme:'console';
-let pendingTheme=settings.theme;
+settings.visibility=VALID_VISIBILITY.has(settings.visibility)?settings.visibility:'balanced';
+let pendingTheme=settings.theme,pendingVisibility=settings.visibility;
 let screen='menu',previousScreen='menu',diff='easy',tutorialStage=0,tutorialSolved=false,game=null,puzzle=null,overlayMode='',pauseActive=false,toastTimer=0,audioCtx=null,frameTime=performance.now(),lastHud=0,activeTimers=[];
 let rankSort='score',rankDiff='easy';
 let devAuthenticated=false,devAttempts=0,devLockUntil=0,devTest=false,devTestKey='',devResults={},devGameplay=false;
@@ -315,8 +317,18 @@ document.addEventListener('keydown',e=>{
 function previewTheme(theme){
  pendingTheme=VALID_THEMES.has(theme)?theme:'console';
  document.body.dataset.theme=pendingTheme;
- $('[data-theme-option]').forEach(button=>{
+ // querySelectorAll: one matching button is not a collection and cannot use forEach.
+ $$('[data-theme-option]').forEach(button=>{
   const selected=button.dataset.themeOption===pendingTheme;
+  button.classList.toggle('selected',selected);
+  button.setAttribute('aria-pressed',String(selected));
+ });
+}
+function previewVisibility(mode){
+ pendingVisibility=VALID_VISIBILITY.has(mode)?mode:'balanced';
+ document.body.dataset.visibility=pendingVisibility;
+ $$('[data-visibility-option]').forEach(button=>{
+  const selected=button.dataset.visibilityOption===pendingVisibility;
   button.classList.toggle('selected',selected);
   button.setAttribute('aria-pressed',String(selected));
  });
@@ -331,10 +343,24 @@ function syncSettings(){
  $('#setMotion').checked=settings.motion;
  $('#setLargeText').checked=settings.largeText;
  previewTheme(settings.theme);
+ previewVisibility(settings.visibility);
 }
 syncSettings();
-$('[data-theme-option]').forEach(button=>button.addEventListener('click',()=>previewTheme(button.dataset.themeOption)));
-$('#menuStart').onclick=()=>{tutorialStage=0;tutorialSolved=false;renderTutorial();go('tutorial')};
+$$('[data-theme-option]').forEach(button=>button.addEventListener('click',()=>previewTheme(button.dataset.themeOption)));
+$$('[data-visibility-option]').forEach(button=>button.addEventListener('click',()=>previewVisibility(button.dataset.visibilityOption)));
+$('#menuStart').onclick=()=>{syncSettings();go('themeSelect')};
+$('#themeSelectBack').onclick=()=>{syncSettings();go('menu')};
+$('#themeSelectNext').onclick=()=>go('visibilitySelect');
+$('#visibilitySelectBack').onclick=()=>go('themeSelect');
+$('#visibilitySelectNext').onclick=()=>{
+ settings.theme=pendingTheme;
+ settings.visibility=pendingVisibility;
+ store(SETTINGS,settings);
+ tutorialStage=0;
+ tutorialSolved=false;
+ renderTutorial();
+ go('tutorial');
+};
 $('#menuSettings').onclick=()=>{previousScreen='menu';syncSettings();go('settings')};$('#menuRank').onclick=()=>go('ranking');
 function returnToMain(){
  clearPuzzleTimers();
@@ -347,10 +373,11 @@ function returnToMain(){
  game=null;
  devTest=false;devTestKey='';devGameplay=false;devAuthenticated=false;$('#devGameBar').classList.add('hidden');document.body.classList.remove('dev-test-active','dev-gameplay');
  frameTime=performance.now();
+ syncSettings();
  go('menu');
 }
 $$('[data-home]').forEach(b=>b.onclick=returnToMain);
-$('#settingsBack').onclick=()=>{previewTheme(settings.theme);go(previousScreen)};$('#saveSettings').onclick=()=>{settings.sound=$('#setSound').checked;settings.volume=Number($('#setVolume').value);settings.parallax=$('#setParallax').checked;settings.motion=$('#setMotion').checked;settings.largeText=$('#setLargeText').checked;settings.theme=pendingTheme;store(SETTINGS,settings);syncSettings();toast('설정이 저장되었습니다.');go(previousScreen)};
+$('#settingsBack').onclick=()=>{syncSettings();go(previousScreen)};$('#saveSettings').onclick=()=>{settings.sound=$('#setSound').checked;settings.volume=Number($('#setVolume').value);settings.parallax=$('#setParallax').checked;settings.motion=$('#setMotion').checked;settings.largeText=$('#setLargeText').checked;settings.theme=pendingTheme;settings.visibility=pendingVisibility;store(SETTINGS,settings);syncSettings();toast('설정이 저장되었습니다.');go(previousScreen)};
 $('#setVolume').oninput=()=>$('#volumeText').textContent=$('#setVolume').value+'%';
 function updateClock(){const t=new Date();$('#menuClock').textContent=[t.getHours(),t.getMinutes(),t.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':')}updateClock();setInterval(updateClock,1000);
 const zone=$('#parallaxZone');let paraX=0,paraY=0,paraRaf=0;zone.addEventListener('pointermove',e=>{if(!settings.parallax||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;const r=zone.getBoundingClientRect();paraX=((e.clientX-r.left)/r.width-.5)*2;paraY=((e.clientY-r.top)/r.height-.5)*2;if(!paraRaf)paraRaf=requestAnimationFrame(moveParallax)});zone.addEventListener('pointerleave',()=>{paraX=0;paraY=0;if(!paraRaf)paraRaf=requestAnimationFrame(moveParallax)});function moveParallax(){paraRaf=0;$$('#parallaxZone .depth').forEach(el=>{const layer=el.classList.contains('v5-back-depth')?.65:el.classList.contains('v5-mid-depth')?1.0:1.42;const base=window.innerWidth<700?8.5:16;const tx=(paraX*base*layer).toFixed(1);const ty=(paraY*(base*.78)*layer).toFixed(1);const scale=(1+layer*0.012).toFixed(3);el.style.transform=`translate3d(${tx}px,${ty}px,0) scale(${scale})`})}
