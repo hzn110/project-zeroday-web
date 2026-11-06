@@ -194,6 +194,63 @@ function devPuzzleEntries(){
 function devTypeLabel(type){return {normal:'연결 노드 / NETWORK',data:'데이터 노드 / DATA',security:'보안 노드 / SECURITY',blocker:'차단 노드 / BLOCKER',core:'CORE / FINAL'}[type]||type}
 function devTypeColor(type){return {normal:'#77b8d6',data:'#ff776e',security:'#ee83b7',blocker:'#9caff0',core:'#f2d36b'}[type]||'#79acff'}
 function devBuilderReady(key){return key==='xor'||typeof PUZZLE_BUILDERS?.[key]==='function'}
+let devTuneSelectedKey='b1';
+function renderDevTuneEditor(){
+ if(!devAuthenticated)return;
+ const select=$('#devTunePuzzle');
+ if(!select)return;
+ const entries=devPuzzleEntries();
+ if(!entries.some(item=>item.key===devTuneSelectedKey))devTuneSelectedKey='b1';
+ select.innerHTML=entries.map(({key,meta})=>`<option value="${key}">${key.toUpperCase()} · ${esc(meta.name)}</option>`).join('');
+ select.value=devTuneSelectedKey;
+ const balance=puzzleTune(devTuneSelectedKey);
+ const fields=items=>items.map(field=>`<label class="dev-tune-field"><span>${esc(field.label)}</span><div class="dev-tune-input"><input type="number" inputmode="numeric" data-tune-field="${field.key}" value="${balance[field.key]}" min="${field.min}" max="${field.max}" step="${field.step}" required><em>${field.unit}</em></div></label>`).join('');
+ const special=TUNE_SPECIAL_FIELDS[devTuneSelectedKey]||[];
+ $('#devTuneFields').innerHTML=`<div class="dev-tune-fieldset"><h4>성공 보상 / 오답 페널티</h4><div class="dev-tune-grid">${fields(TUNE_BASE_FIELDS)}</div></div>${special.length?`<div class="dev-tune-fieldset"><h4>속도 / 타이밍 / 추가 비용</h4><div class="dev-tune-grid">${fields(special)}</div></div>`:''}`;
+ const changed=Object.keys(puzzleTuning[devTuneSelectedKey]||{}).length;
+ $('#devTuneStatus').textContent=changed?`사용자 설정 ${changed}개`:'기본 설정';
+ $('#devTuneStatus').classList.toggle('custom',changed>0);
+ $('#devTuneFeedback').className='dev-tuning-feedback';
+ $('#devTuneFeedback').textContent='변경값을 입력한 후 저장하세요. 다음 퍼즐 실행부터 적용됩니다.';
+}
+function saveDevTune(){
+ if(!devAuthenticated)return;
+ const key=devTuneSelectedKey,defaults=tuneDefaults(key),overrides={};
+ for(const field of tuneFields(key)){
+  const input=$('#devTuneFields').querySelector(`[data-tune-field="${field.key}"]`);
+  if(!input)return;
+  const raw=input.value.trim(),value=Number(raw);
+  if(!raw||!Number.isInteger(value)||value<field.min||value>field.max){
+   $('#devTuneFeedback').className='dev-tuning-feedback error';
+   $('#devTuneFeedback').textContent=`${field.label}: ${field.min}~${field.max} 사이의 정수를 입력하세요.`;
+   input.focus();return;
+  }
+  if(value!==defaults[field.key])overrides[field.key]=value;
+ }
+ if(Object.keys(overrides).length)puzzleTuning[key]=overrides;
+ else delete puzzleTuning[key];
+ persistPuzzleTune();
+ renderDevDashboard();
+ $('#devTuneFeedback').className='dev-tuning-feedback success';
+ $('#devTuneFeedback').textContent=`${key.toUpperCase()} 밸런스 저장 완료. 다음 퍼즐 실행부터 적용됩니다.`;
+ devOutput(`BALANCE SAVED // ${key.toUpperCase()} · 변경 항목 ${Object.keys(overrides).length}개`,'good');
+}
+function resetDevTuneOne(){
+ if(!devAuthenticated)return;
+ const key=devTuneSelectedKey;
+ delete puzzleTuning[key];
+ persistPuzzleTune();renderDevDashboard();
+ $('#devTuneFeedback').className='dev-tuning-feedback success';
+ $('#devTuneFeedback').textContent=`${key.toUpperCase()} 퍼즐의 기본값을 복구했습니다.`;
+}
+function resetDevTuneAll(){
+ if(!devAuthenticated||!confirm('17개 퍼즐의 사용자 지정 점수와 속도를 모두 기본값으로 되돌릴까요?'))return;
+ for(const key of Object.keys(puzzleTuning))delete puzzleTuning[key];
+ persistPuzzleTune();renderDevDashboard();
+ $('#devTuneFeedback').className='dev-tuning-feedback success';
+ $('#devTuneFeedback').textContent='전체 퍼즐 밸런스를 기본값으로 복구했습니다.';
+ devOutput('BALANCE RESET // 모든 퍼즐 설정이 기본값으로 복구되었습니다.','good');
+}
 function renderDevDashboard(){
  if(!devAuthenticated)return;
  const entries=devPuzzleEntries(),types=['normal','data','security','blocker','core'];
@@ -211,12 +268,18 @@ function renderDevDashboard(){
    return `<article class="dev-card ${state}" style="--dev-accent:${devTypeColor(type)}">
     <div class="dev-card-top"><span class="dev-key">${key.toUpperCase()} // RANK ${meta.rank}</span><span class="dev-state">${label}</span></div>
     <h3>${esc(meta.name)}</h3><p>${esc(meta.rule)}</p>
-    <div class="dev-meta"><span>${'★'.repeat(meta.rank)}${'☆'.repeat(4-meta.rank)}</span><span>${devBuilderReady(key)?'BUILDER OK':'BUILDER MISSING'}</span></div>
-    <button class="outline small" data-dev-puzzle="${key}">${state==='pass'?'다시 테스트':'퍼즐 실행'} →</button>
+    <div class="dev-meta"><span>${'★'.repeat(meta.rank)}${'☆'.repeat(4-meta.rank)}</span><span>${Object.keys(puzzleTuning[key]||{}).length?'CUSTOM BALANCE':devBuilderReady(key)?'BUILDER OK':'BUILDER MISSING'}</span></div>
+    <div class="dev-card-actions"><button class="outline small" data-dev-puzzle="${key}">${state==='pass'?'다시 테스트':'퍼즐 실행'} →</button><button class="outline small" data-dev-tune="${key}">밸런스 조정</button></div>
    </article>`;
   }).join('')}</div></section>`;
  }).join('');
- $$('[data-dev-puzzle]').forEach(btn=>btn.onclick=()=>openDevPuzzle(btn.dataset.devPuzzle));
+ $('[data-dev-puzzle]').forEach(btn=>btn.onclick=()=>openDevPuzzle(btn.dataset.devPuzzle));
+ $('[data-dev-tune]').forEach(btn=>btn.onclick=()=>{
+  devTuneSelectedKey=btn.dataset.devTune;
+  renderDevTuneEditor();
+  $('#devTuningPanel').scrollIntoView({behavior:'smooth',block:'start'});
+ });
+ renderDevTuneEditor();
 }
 
 function devOutput(message,kind=''){
@@ -354,6 +417,10 @@ $('#devNetworkScan').onclick=devValidateNetworks;
 $('#devSeedRanking').onclick=devSeedRankings;
 $('#devClearRanking').onclick=devClearRankings;
 $('#devResetSettings').onclick=devResetSettings;
+$('#devTunePuzzle').onchange=()=>{devTuneSelectedKey=$('#devTunePuzzle').value;renderDevTuneEditor()};
+$('#devTuneSave').onclick=saveDevTune;
+$('#devTuneResetOne').onclick=resetDevTuneOne;
+$('#devTuneResetAll').onclick=resetDevTuneAll;
 $('#devAddTime').onclick=()=>{if(devGameplay&&game){game.remaining=Math.min(game.duration+600,game.remaining+60);updateHud();toast('DEV: 제한시간 +60초')}};
 $('#devZeroTrace').onclick=()=>{if(devGameplay&&game){game.trace=0;updateHud();toast('DEV: TRACE 0%')}};
 $('#devAddScore').onclick=()=>{if(devGameplay&&game){game.score+=1000;updateHud();toast('DEV: SCORE +1000')}};
