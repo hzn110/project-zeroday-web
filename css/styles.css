@@ -4737,3 +4737,12 @@ body[data-visibility="contrast"] .puzzle-area .memory-grid .memory-tile.is-corre
 .ranking-panel tbody tr:hover{background:rgba(98,175,200,.06)}
 #rankingSort button:focus-visible,#rankingDifficulty button:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
 @media(max-width:650px){.ranking-meta{display:block}.ranking-meta span{display:block}.ranking-sort-tabs button{flex:1 1 auto;padding:10px 12px}}
+
+
+/* v4.22 — weighted composite leaderboard */
+.ranking-panel table{min-width:780px}
+.ranking-panel td.rank-overall{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700}
+.ranking-panel td.rank-overall.rank-primary{font-weight:900}
+.ranking-explainer{width:min(900px,100%);margin:14px auto 0;line-height:1.75;font-size:12px}
+.ranking-explainer span{display:block;margin-top:5px}
+@media(max-width:650px){.ranking-sort-tabs button{flex:1 1 calc(50% - 8px)}.ranking-explainer{text-align:left}}
