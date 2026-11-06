@@ -320,7 +320,7 @@ function applyVisualMode(mode){
  $('#visualQuickToggle').setAttribute('aria-pressed',String(clean));
  $('#setVisualRich').checked=!clean;
  $('#visualModeStatus').textContent=clean?'깔끔한 모드':'화려한 모드';
- if(clean){$('#parallaxZone .depth').forEach(el=>el.style.transform='none');const map=$('#mapCanvas');if(map){map.style.setProperty('--map-x','0px');map.style.setProperty('--map-y','0px')}}
+ if(clean){$$('#parallaxZone .depth').forEach(el=>el.style.transform='none');const map=$('#mapCanvas');if(map){map.style.setProperty('--map-x','0px');map.style.setProperty('--map-y','0px')}}
  store(SETTINGS,settings);
 }
 settings.visualMode=settings.visualMode==='clean'?'clean':'rich';
@@ -328,7 +328,7 @@ applyVisualMode(settings.visualMode);
 $('#visualQuickToggle').onclick=()=>applyVisualMode(settings.visualMode==='rich'?'clean':'rich');
 $('#setVisualRich').onchange=e=>applyVisualMode(e.target.checked?'rich':'clean');
 const visualWelcome=$('#visualModeWelcome');
-$('[data-visual-choice]').forEach(b=>b.onclick=()=>{applyVisualMode(b.dataset.visualChoice);visualWelcome.classList.add('hidden');document.body.classList.remove('visual-welcome-open');try{localStorage.setItem('pzd_visual_choice_done','1')}catch{}});
+$$('[data-visual-choice]').forEach(b=>b.onclick=()=>{applyVisualMode(b.dataset.visualChoice);visualWelcome.classList.add('hidden');document.body.classList.remove('visual-welcome-open');try{localStorage.setItem('pzd_visual_choice_done','1')}catch{}});
 let visualChosen=false;try{visualChosen=localStorage.getItem('pzd_visual_choice_done')==='1'}catch{}
 if(!visualChosen){visualWelcome.classList.remove('hidden');document.body.classList.add('visual-welcome-open')}
 $('#menuStart').onclick=()=>{tutorialStage=0;tutorialSolved=false;renderTutorial();go('tutorial')};
@@ -795,9 +795,9 @@ function renderRanking(){
  $('#rankingCriteria').textContent=descriptions[rankSort]||descriptions.score;
  $('#rankingSummary').textContent=`${rankDiff==='easy'?'쉬움':'어려움'} / ${valid.length}회 플레이 · ${records.length}명 등록 · 부문별 닉네임 최고 기록만 표시`;
  $('#rankingRows').innerHTML=records.length?records.slice(0,20).map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.nickname||'ANON')}</td><td>${esc(r.grade||'—')}</td><td>${fmt(Number(r.score))}</td><td>${mmss(Number(r.time))}</td><td>${Number(r.trace)}%</td><td>${esc(r.date||'—')}</td></tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:35px">이 부문의 등록 기록이 없습니다. 첫 번째 침투를 완료해 보세요.</td></tr>';
- $$('[data-sort]').forEach(b=>b.classList.toggle('selected',b.dataset.sort===rankSort));
- $$('[data-rankdiff]').forEach(b=>b.classList.toggle('selected',b.dataset.rankdiff===rankDiff));
- $$('[data-rankcol]').forEach(th=>th.classList.toggle('rank-active-col',th.dataset.rankcol===rankSort));
+ $$$('[data-sort]').forEach(b=>b.classList.toggle('selected',b.dataset.sort===rankSort));
+ $$$('[data-rankdiff]').forEach(b=>b.classList.toggle('selected',b.dataset.rankdiff===rankDiff));
+ $$$('[data-rankcol]').forEach(th=>th.classList.toggle('rank-active-col',th.dataset.rankcol===rankSort));
 }
 $$('[data-sort]').forEach(b=>b.onclick=()=>{rankSort=b.dataset.sort;renderRanking()});$$('[data-rankdiff]').forEach(b=>b.onclick=()=>{rankDiff=b.dataset.rankdiff;renderRanking()});
 function tick(now){let delta=Math.max(0,(now-frameTime)/1000);frameTime=now;if(game&&!game.paused&&!guideOpen&&['map','core'].includes(game.phase)){game.remaining=Math.max(0,game.remaining-delta);game.elapsed+=delta;game.trace=Math.min(100,game.trace+delta*(game.diff==='easy'?.047:.081));if(game.remaining<=0)endGame(false,'제한 시간이 모두 지났습니다.');else if(game.trace>=100)endGame(false,'추적도가 100%에 도달했습니다.');if(now-lastHud>150){lastHud=now;updateHud()}}requestAnimationFrame(tick)}requestAnimationFrame(tick);
