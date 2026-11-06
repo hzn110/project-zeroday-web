@@ -4456,3 +4456,159 @@ body[data-theme="polish"] .result-metrics div{background:#0e1120}
  .theme-option{transition:none}
 }
 
+
+
+/* PRE-GAME VISUAL SETUP / READABILITY MODES — keep all puzzle mechanics unchanged. */
+/* Ensure the main menu stays above decorative visual layers. */
+#menu .menu-left{z-index:10;isolation:isolate;pointer-events:auto}
+#menu .menu-buttons,#menu .menu-buttons button{position:relative;z-index:2;pointer-events:auto}
+#menu .menu-stage{z-index:1}
+#menu .menu-right{z-index:2}
+.setup-screen{overflow-y:auto}
+.setup-center{justify-content:flex-start;padding:30px 22px 58px;min-height:calc(100vh - 75px)}
+.setup-progress{display:flex;gap:0;align-items:center;justify-content:center;width:min(900px,100%);margin:6px 0 30px;border:1px solid var(--line);background:rgba(7,14,27,.76)}
+.setup-progress span{flex:1;position:relative;text-align:center;padding:12px 7px;color:var(--dim);font:700 11px 'Chakra Petch',monospace;letter-spacing:.08em}
+.setup-progress span+span{border-left:1px solid var(--line)}
+.setup-progress span.current{background:rgba(234,255,0,.085);color:var(--yellow);box-shadow:inset 0 -2px var(--yellow)}
+.setup-progress span.complete{color:var(--cyan)}
+.setup-intro{max-width:720px;margin:10px 0 25px;font-size:13px;line-height:1.8}
+.setup-choice-grid{display:grid;gap:16px;width:min(900px,100%);align-items:stretch}
+.theme-setup-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.visibility-setup-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.setup-choice{min-height:0;cursor:pointer}
+.theme-setup-grid .theme-option{padding:17px;gap:9px}
+.theme-setup-grid .theme-preview{height:210px;margin-bottom:10px}
+.theme-setup-grid .theme-mini-type{font-size:clamp(26px,4.2vw,45px)}
+.theme-setup-grid .theme-preview-console>span{font-size:12px;top:17px;left:16px}
+.theme-setup-grid .theme-mini-node{width:23px;height:23px}
+.theme-setup-grid .theme-option strong{font-size:18px;letter-spacing:.035em}
+.theme-setup-grid .theme-option small{font-size:12px;line-height:1.6}
+.setup-choice-indicator{display:block;align-self:flex-start;margin-top:auto;padding-top:9px;font:700 12px 'Chakra Petch',sans-serif;color:var(--muted)}
+.setup-choice.selected .setup-choice-indicator{color:var(--yellow)}
+.setup-actions{width:min(900px,100%);display:flex;justify-content:flex-end;margin-top:24px}
+.setup-actions button{min-width:250px;min-height:52px}
+.visibility-option{display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:13px;text-align:left;color:var(--text);background:rgba(6,12,22,.83);border:1px solid var(--line);transition:border-color .16s,box-shadow .16s,transform .16s}
+.visibility-option:hover{border-color:var(--cyan);transform:translateY(-2px)}
+.visibility-option.selected{border-color:var(--yellow);box-shadow:0 0 0 1px var(--yellow),0 0 22px rgba(234,255,0,.09)}
+.visibility-option:focus-visible{outline:2px solid var(--yellow);outline-offset:3px}
+.visibility-option strong{font-size:16px}
+.visibility-option small{font-size:11px;line-height:1.55;color:var(--muted)}
+.visibility-setup-grid .visibility-option{padding:15px;gap:11px}
+.visibility-setup-grid .visibility-option strong{font-size:21px}
+.visibility-setup-grid .visibility-option small{font-size:12px;min-height:38px}
+.visibility-preview{display:flex;position:relative;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;overflow:hidden;min-height:105px;padding:14px 15px;background:#0a1624;border:1px solid #2e4759;color:#9db0c3;font:11px 'Chakra Petch',monospace}
+.visibility-preview:after{content:'';position:absolute;inset:0;pointer-events:none}
+.visibility-preview i{font-style:normal;font-size:9px;letter-spacing:.14em}
+.visibility-preview b{font-size:15px;letter-spacing:.025em}
+.visibility-preview span{font-size:11px}
+.visibility-preview em{align-self:flex-end;font-size:9px;font-style:normal;color:#39ecf1;border:1px solid currentColor;padding:2px 5px}
+.visibility-preview-balanced{background:radial-gradient(circle at 75% 40%,rgba(57,236,241,.13),transparent 50%),#0b1625;color:#93a9bc;border-color:#2b4659}
+.visibility-preview-balanced:after{background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.17) 4px 5px)}
+.visibility-preview-clear{background:#08101b;color:#e7f4ff;border-color:#82b3ca}
+.visibility-preview-clear b{font-size:16px;color:#fff}
+.visibility-preview-clear span{color:#c5d9e9}
+.visibility-preview-clear em{color:#69f2fc}
+.visibility-preview-contrast{background:#010204;color:#fff;border-color:#e5ff00}
+.visibility-preview-contrast i{color:#e5ff00}
+.visibility-preview-contrast b{font-size:17px;color:#fff}
+.visibility-preview-contrast span{color:#fff}
+.visibility-preview-contrast em{background:#e5ff00;border-color:#e5ff00;color:#000;font-weight:900}
+.visibility-picker{padding:20px 0;border-bottom:1px solid var(--line)}
+.visibility-settings-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.visibility-settings-grid .visibility-option{padding:9px}
+.visibility-settings-grid .visibility-preview{min-height:85px;padding:9px;gap:3px}
+.visibility-settings-grid .visibility-preview b{font-size:12px}
+.visibility-settings-grid .visibility-preview span{font-size:10px}
+.visibility-settings-grid .visibility-preview em{font-size:8px}
+.visibility-settings-grid .visibility-option strong{font-size:13px}
+.visibility-settings-grid .visibility-option small{font-size:10px}
+/* CLEAR: less visual noise, clearer secondary text and more legible puzzle instructions. */
+body[data-visibility="clear"]{--text:#f0f7ff;--muted:#bacddd;--dim:#91a9c0}
+body[data-visibility="clear"] .noise{opacity:.025}
+body[data-visibility="clear"] #menu .v5-stage:before{opacity:.08}
+body[data-visibility="clear"] #menu .v5-stage:after{opacity:.2}
+body[data-visibility="clear"] .subtle,
+body[data-visibility="clear"] .setting-row p,
+body[data-visibility="clear"] .theme-picker-heading p{color:#bdcddd}
+body[data-visibility="clear"] .panel,
+body[data-visibility="clear"] .overlay-shell{border-color:rgba(127,207,226,.45)}
+body[data-visibility="clear"] .puzzle-area,
+body[data-visibility="clear"] .quiz-instruction,
+body[data-visibility="clear"] .information{font-size:16px;line-height:1.7}
+body[data-visibility="clear"] .hud-target small,
+body[data-visibility="clear"] .hud-time small,
+body[data-visibility="clear"] .hud-trace small{color:#b2c9dd}
+body[data-visibility="clear"] .map-canvas{background-color:#060e19}
+body[data-visibility="clear"] .menu-left{filter:none}
+/* HIGH CONTRAST: minimal decoration, strong edges, readable status labels. */
+body[data-visibility="contrast"]{
+ --text:#fff;--muted:#dce8f5;--dim:#b9cce1;
+ --line:rgba(186,230,255,.72);--line2:rgba(186,230,255,.45);
+}
+body[data-visibility="contrast"] .noise{display:none}
+body[data-visibility="contrast"] .screen{background:#03050b}
+body[data-visibility="contrast"] .panel,
+body[data-visibility="contrast"] .overlay-shell{background:#05070c;border-color:#b9dff5;box-shadow:none}
+body[data-visibility="contrast"] .subtle,
+body[data-visibility="contrast"] .setting-row p,
+body[data-visibility="contrast"] .theme-picker-heading p{color:#dce8f5}
+body[data-visibility="contrast"] #menu .menu-left,
+body[data-visibility="contrast"] #menu .menu-right{background:#03050b;border-color:#afcadc}
+body[data-visibility="contrast"] #menu .v5-stage:before,
+body[data-visibility="contrast"] #menu .v5-stage:after{opacity:0}
+body[data-visibility="contrast"] #menu .v5-mid-depth{display:none}
+body[data-visibility="contrast"] #menu .v5-back-depth{opacity:.24}
+body[data-visibility="contrast"] #menu .v5-stage{filter:none}
+body[data-visibility="contrast"] #menu .polish-grid{opacity:.14}
+body[data-visibility="contrast"] #menu .polish-arch{opacity:.23}
+body[data-visibility="contrast"] #menu .polish-type-main{text-shadow:none;animation:none!important}
+body[data-visibility="contrast"] #menu .polish-type-outline{opacity:.2}
+body[data-visibility="contrast"] #menu .menu-link{color:#f4faff;border-bottom-color:#8aa6ba}
+body[data-visibility="contrast"] .hud-header,
+body[data-visibility="contrast"] .game-left,
+body[data-visibility="contrast"] .game-right{background:#05070c;border-color:#afcadc}
+body[data-visibility="contrast"] .hud-target small,
+body[data-visibility="contrast"] .hud-time small,
+body[data-visibility="contrast"] .hud-trace small{color:#d6e8f5}
+body[data-visibility="contrast"] .map-pane{background:#04070e}
+body[data-visibility="contrast"] .map-canvas{background:repeating-linear-gradient(0deg,transparent 0 49px,rgba(170,205,235,.12) 50px),repeating-linear-gradient(90deg,transparent 0 49px,rgba(170,205,235,.12) 50px),#04070e}
+body[data-visibility="contrast"] .puzzle-area,
+body[data-visibility="contrast"] .quiz-instruction,
+body[data-visibility="contrast"] .information{font-size:17px;line-height:1.75;color:#fff}
+body[data-visibility="contrast"] .overlay-head,
+body[data-visibility="contrast"] .overlay-footer,
+body[data-visibility="contrast"] .setting-row{border-color:#9bbad1}
+body[data-visibility="contrast"] .outline{border-color:#c7e2f6;color:#fff;background:#101826}
+body[data-visibility="contrast"] .outline:hover:not(:disabled){background:#172e40}
+body[data-visibility="contrast"] .tabs button{border-color:#a8c5d7;color:#fff}
+body[data-visibility="contrast"] .tabs button.selected{color:#05070c}
+body[data-visibility="contrast"] .setting-row input[type=range]{accent-color:var(--yellow)}
+body[data-visibility="contrast"] .theme-option,
+body[data-visibility="contrast"] .visibility-option{border-color:#8aa6ba}
+body[data-visibility="contrast"] .theme-option.selected,
+body[data-visibility="contrast"] .visibility-option.selected{border-color:var(--yellow)}
+@media(max-width:760px){
+ .setup-center{padding:22px 15px 40px}
+ .theme-setup-grid{grid-template-columns:1fr}
+ .theme-setup-grid .theme-preview{height:160px}
+ .theme-setup-grid .theme-mini-type{font-size:clamp(26px,6vw,42px)}
+ .visibility-setup-grid{grid-template-columns:1fr}
+ .visibility-setup-grid .visibility-option{display:grid;grid-template-columns:150px 1fr;column-gap:15px;align-items:center}
+ .visibility-setup-grid .visibility-preview{grid-row:span 3;min-height:110px}
+ .visibility-setup-grid .visibility-option small{min-height:0}
+ .visibility-setup-grid .setup-choice-indicator{padding-top:0}
+}
+@media(max-width:500px){
+ .setup-progress span{font-size:9px;letter-spacing:0}
+ .setup-actions button{width:100%;min-width:0}
+ .visibility-settings-grid{grid-template-columns:1fr}
+ .visibility-settings-grid .visibility-option{display:grid;grid-template-columns:110px 1fr;align-items:center}
+ .visibility-settings-grid .visibility-preview{grid-row:span 2;min-height:80px}
+ .visibility-setup-grid .visibility-option{grid-template-columns:120px 1fr}
+ .visibility-preview{padding:8px}
+ .visibility-preview b{font-size:13px}
+}
+@media(prefers-reduced-motion:reduce){
+ .visibility-option{transition:none}
+}
+
