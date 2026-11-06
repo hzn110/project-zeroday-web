@@ -346,16 +346,17 @@ function devSeedRankings(){
  if(!devAuthenticated)return;
  let records=read(STORAGE,[]);if(!Array.isArray(records))records=[];
  const today=new Date().toLocaleDateString('ko-KR');
+ // Each QA profile intentionally leads a different metric so sort controls visibly reorder rows.
  const samples=[
-  {nickname:'DEV_ALPHA',diff:'easy',score:7420,time:143,trace:18,grade:'S',date:today},
-  {nickname:'QA_GHOST',diff:'easy',score:6180,time:176,trace:31,grade:'A',date:today},
-  {nickname:'NODE_07',diff:'easy',score:5310,time:201,trace:47,grade:'A',date:today},
-  {nickname:'ZERO',diff:'hard',score:8250,time:119,trace:22,grade:'S',date:today},
-  {nickname:'TRACE99',diff:'hard',score:6910,time:146,trace:39,grade:'A',date:today},
-  {nickname:'BETA_01',diff:'hard',score:5840,time:163,trace:58,grade:'B',date:today}
+  {nickname:'QA_SCORE_E',diff:'easy',score:9000,time:240,trace:65,grade:'B',date:today},
+  {nickname:'QA_SPEED_E',diff:'easy',score:6200,time:70,trace:50,grade:'A',date:today},
+  {nickname:'QA_STEALTH_E',diff:'easy',score:5000,time:190,trace:5,grade:'S',date:today},
+  {nickname:'QA_SCORE_H',diff:'hard',score:10000,time:170,trace:68,grade:'B',date:today},
+  {nickname:'QA_SPEED_H',diff:'hard',score:7000,time:105,trace:57,grade:'A',date:today},
+  {nickname:'QA_STEALTH_H',diff:'hard',score:5800,time:142,trace:4,grade:'S',date:today}
  ];
  store(STORAGE,[...records,...samples].slice(-150));
- devOutput('RANKING QA // 샘플 기록 6개를 추가했습니다. 랭킹 화면에서 표시 상태를 확인할 수 있습니다.','good');
+ devOutput('RANKING QA // 정렬 검증용 샘플 6개 추가: 점수·시간·추적도 탭마다 순서가 달라집니다.','good');
 }
 function devClearRankings(){
  if(!devAuthenticated)return;
@@ -943,7 +944,71 @@ $('#nicknameSave').onclick=registerNickname;
 $('#nicknameInput').addEventListener('keydown',e=>{if(e.key==='Enter')registerNickname()});
 function openPause(){if(!game||game.paused||!['map','core'].includes(game.phase))return;game.paused=true;pauseActive=true;let shade=document.createElement('div');shade.className='overlay';shade.id='pauseShade';shade.style.zIndex='1200';shade.innerHTML=`<div class="panel" style="width:min(470px,92vw);padding:30px;text-align:center"><div class="section-brow">작전 일시정지</div><h2 style="margin:12px 0">잠시 정지했습니다</h2><p class="subtle" style="margin:14px 0 24px">이 화면에서는 시간과 추적도가 증가하지 않습니다.</p><div class="action-row center-actions"><button id="pauseResume" class="bright">작전 재개 ▶</button><button id="pauseExit" class="outline danger">메인으로 종료</button></div></div>`;document.body.appendChild(shade);$('#pauseResume').onclick=()=>{game.paused=false;pauseActive=false;shade.remove();frameTime=performance.now()};$('#pauseExit').onclick=()=>{returnToMain()}}
 $('#pauseBtn').onclick=openPause;$('#overlayClose').onclick=()=>{if(devTest){closeDevPuzzle()}else if(overlayMode==='intel'||overlayMode==='puzzle'){closeOverlay()}else if(overlayMode==='core')openPause()};$('#resultRetry').onclick=()=>go('difficulty');$('#resultRank').onclick=()=>{if(game?.phase==='won'&&!game.saved){$('#nicknameFeedback').className='nickname-feedback bad';$('#nicknameFeedback').textContent='현재 클리어 기록을 랭킹에 남기려면 먼저 닉네임을 등록하세요.';$('#nicknameInput').focus();return}rankDiff=game?.diff||'easy';renderRanking();go('ranking')};
-function renderRanking(){let rec=read(STORAGE,[]);if(!Array.isArray(rec))rec=[];rec=rec.filter(r=>r&&r.diff===rankDiff&&Number.isFinite(+r.score)&&Number.isFinite(+r.time));rec.sort((a,b)=>rankSort==='score'?b.score-a.score||a.time-b.time:rankSort==='time'?a.time-b.time||b.score-a.score:a.trace-b.trace||a.time-b.time);$('#rankingRows').innerHTML=rec.length?rec.slice(0,20).map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.nickname||'ANON')}</td><td>${esc(r.grade)}</td><td>${fmt(r.score)}</td><td>${mmss(r.time)}</td><td>${r.trace}%</td><td>${esc(r.date)}</td></tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:35px">저장된 기록이 없습니다. 첫 번째 침투를 완료해 보세요.</td></tr>';$$('[data-sort]').forEach(b=>b.classList.toggle('selected',b.dataset.sort===rankSort));$$('[data-rankdiff]').forEach(b=>b.classList.toggle('selected',b.dataset.rankdiff===rankDiff))}
+function parseRankNumber(value,percent=false){
+ if(typeof value!=='number'&&typeof value!=='string')return null;
+ let raw=String(value).trim().replace(/,/g,'');
+ if(percent)raw=raw.replace(/%$/,'').trim();
+ if(!raw)return null;
+ const n=Number(raw);
+ return Number.isFinite(n)?n:null;
+}
+function normalizeRankingRecord(record,index){
+ if(!record||typeof record!=='object'||!['easy','hard'].includes(record.diff))return null;
+ const score=parseRankNumber(record.score),time=parseRankNumber(record.time),trace=parseRankNumber(record.trace,true);
+ if(score===null||score<0||time===null||time<0)return null;
+ return {
+  nickname:String(record.nickname||'ANON'),
+  diff:record.diff,
+  score:Math.round(score),
+  time:Math.round(time*100)/100,
+  trace:trace!==null&&trace>=0&&trace<=100?Math.round(trace*10)/10:null,
+  grade:String(record.grade||'—'),
+  date:String(record.date||'—'),
+  index
+ };
+}
+function compareRankingRecords(a,b,metric){
+ const traceOrder=a.trace===null?(b.trace===null?0:1):b.trace===null?-1:a.trace-b.trace;
+ if(metric==='time')return a.time-b.time||b.score-a.score||traceOrder||b.index-a.index;
+ if(metric==='trace')return traceOrder||b.score-a.score||a.time-b.time||b.index-a.index;
+ return b.score-a.score||a.time-b.time||traceOrder||b.index-a.index;
+}
+function formatRankingTime(seconds){
+ const centis=Math.round(seconds*100);
+ return `${String(Math.floor(centis/6000)).padStart(2,'0')}:${String(Math.floor(centis/100)%60).padStart(2,'0')}.${String(centis%100).padStart(2,'0')}`;
+}
+function renderRanking(){
+ const raw=read(STORAGE,[]);
+ const records=(Array.isArray(raw)?raw:[]).map(normalizeRankingRecord).filter(Boolean).filter(r=>r.diff===rankDiff);
+ records.sort((a,b)=>compareRankingRecords(a,b,rankSort));
+ const visible=records.slice(0,20);
+ $('#rankingRows').innerHTML=visible.length?visible.map((r,i)=>`<tr>
+  <td class="rank-number">${i+1}</td>
+  <td>${esc(r.nickname)}</td>
+  <td>${esc(r.grade)}</td>
+  <td class="${rankSort==='score'?'rank-primary':''}">${fmt(r.score)}</td>
+  <td class="${rankSort==='time'?'rank-primary':''} rank-time">${formatRankingTime(r.time)}</td>
+  <td class="${rankSort==='trace'?'rank-primary':''}">${r.trace===null?'—':r.trace+'%'}</td>
+  <td>${esc(r.date)}</td>
+ </tr>`).join(''):'<tr><td colspan="7" class="rank-empty">해당 난이도에 저장된 기록이 없습니다. 먼저 게임을 클리어하고 닉네임을 등록하세요.</td></tr>';
+ const labels={score:'최고 점수순',time:'최단 시간순',trace:'최저 추적도순'};
+ const rules={score:'동점: 소요 시간 → 추적도 → 최신 기록',time:'동률: 점수 → 추적도 → 최신 기록',trace:'동률: 점수 → 소요 시간 → 최신 기록'};
+ $('#rankingSummary').textContent=`${rankDiff==='hard'?'어려움':'쉬움'} · ${labels[rankSort]} · ${records.length}개 기록${records.length>20?' (상위 20개 표시)':''}`;
+ $('#rankingRule').textContent=rules[rankSort];
+ $$('[data-sort]').forEach(b=>{
+  const selected=b.dataset.sort===rankSort;
+  b.classList.toggle('selected',selected);
+  b.setAttribute('aria-pressed',String(selected));
+ });
+ $$('[data-rankdiff]').forEach(b=>{
+  const selected=b.dataset.rankdiff===rankDiff;
+  b.classList.toggle('selected',selected);
+  b.setAttribute('aria-pressed',String(selected));
+ });
+ $$('[data-rank-column]').forEach(th=>{
+  th.setAttribute('aria-sort',th.dataset.rankColumn===rankSort?(rankSort==='score'?'descending':'ascending'):'none');
+ });
+}
 $$('[data-sort]').forEach(b=>b.onclick=()=>{rankSort=b.dataset.sort;renderRanking()});$$('[data-rankdiff]').forEach(b=>b.onclick=()=>{rankDiff=b.dataset.rankdiff;renderRanking()});
 function tick(now){let delta=Math.max(0,(now-frameTime)/1000);frameTime=now;if(game&&!game.paused&&!guideOpen&&['map','core'].includes(game.phase)){game.remaining=Math.max(0,game.remaining-delta);game.elapsed+=delta;game.trace=Math.min(100,game.trace+delta*(game.diff==='easy'?.047:.081));if(game.remaining<=0)endGame(false,'제한 시간이 모두 지났습니다.');else if(game.trace>=100)endGame(false,'추적도가 100%에 도달했습니다.');if(now-lastHud>150){lastHud=now;updateHud()}}requestAnimationFrame(tick)}requestAnimationFrame(tick);
 const PUZZLE_BUILDERS={};
