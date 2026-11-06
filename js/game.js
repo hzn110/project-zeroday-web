@@ -346,16 +346,17 @@ function devSeedRankings(){
  if(!devAuthenticated)return;
  let records=read(STORAGE,[]);if(!Array.isArray(records))records=[];
  const today=new Date().toLocaleDateString('ko-KR');
+ // Each QA profile intentionally leads a different metric so sort controls visibly reorder rows.
  const samples=[
-  {nickname:'DEV_ALPHA',diff:'easy',score:7420,time:143,trace:18,grade:'S',date:today},
-  {nickname:'QA_GHOST',diff:'easy',score:6180,time:176,trace:31,grade:'A',date:today},
-  {nickname:'NODE_07',diff:'easy',score:5310,time:201,trace:47,grade:'A',date:today},
-  {nickname:'ZERO',diff:'hard',score:8250,time:119,trace:22,grade:'S',date:today},
-  {nickname:'TRACE99',diff:'hard',score:6910,time:146,trace:39,grade:'A',date:today},
-  {nickname:'BETA_01',diff:'hard',score:5840,time:163,trace:58,grade:'B',date:today}
+  {nickname:'QA_SCORE_E',diff:'easy',score:9000,time:240,trace:65,grade:'B',date:today},
+  {nickname:'QA_SPEED_E',diff:'easy',score:6200,time:70,trace:50,grade:'A',date:today},
+  {nickname:'QA_STEALTH_E',diff:'easy',score:5000,time:190,trace:5,grade:'S',date:today},
+  {nickname:'QA_SCORE_H',diff:'hard',score:10000,time:170,trace:68,grade:'B',date:today},
+  {nickname:'QA_SPEED_H',diff:'hard',score:7000,time:105,trace:57,grade:'A',date:today},
+  {nickname:'QA_STEALTH_H',diff:'hard',score:5800,time:142,trace:4,grade:'S',date:today}
  ];
  store(STORAGE,[...records,...samples].slice(-150));
- devOutput('RANKING QA // 샘플 기록 6개를 추가했습니다. 랭킹 화면에서 표시 상태를 확인할 수 있습니다.','good');
+ devOutput('RANKING QA // 정렬 검증용 샘플 6개 추가: 점수·시간·추적도 탭마다 순서가 달라집니다.','good');
 }
 function devClearRankings(){
  if(!devAuthenticated)return;
