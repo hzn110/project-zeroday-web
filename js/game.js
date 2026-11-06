@@ -322,6 +322,8 @@ function previewTheme(theme){
   const selected=button.dataset.themeOption===pendingTheme;
   button.classList.toggle('selected',selected);
   button.setAttribute('aria-pressed',String(selected));
+  const label=button.querySelector('.setup-choice-indicator');
+  if(label)label.textContent=selected?'선택됨 ✓':'이 테마 선택';
  });
 }
 function previewVisibility(mode){
@@ -331,6 +333,8 @@ function previewVisibility(mode){
   const selected=button.dataset.visibilityOption===pendingVisibility;
   button.classList.toggle('selected',selected);
   button.setAttribute('aria-pressed',String(selected));
+  const label=button.querySelector('.setup-choice-indicator');
+  if(label)label.textContent=selected?'선택됨 ✓':'이 모드 선택';
  });
 }
 function syncSettings(){
