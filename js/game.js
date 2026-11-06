@@ -20,7 +20,7 @@ const PUZZLES={
  s2:{type:'security',name:'인증 순서 복원',rank:2,rule:'인증 과정의 단계를 올바른 순서로 누르세요.',hints:['요청 이후 확인이 이뤄지고, 검증 후 승인이 이어집니다.','시작 단계는 접속 요청입니다.','접속 요청 → 신원 확인 → 암호 검증 → 접근 승인.']},
  s3:{type:'security',name:'접근 권한 검사',rank:4,rule:'권한 등급이 파일의 보안 등급 이상인 사용자 2명을 선택하세요.',hints:['각 사용자의 권한과 파일 등급을 비교하세요.','권한이 파일 등급과 같아도 접근 가능합니다.','파일 등급 이상인 두 사용자만 골라 주세요.']},
  s4:{type:'security',name:'반복 접속 탐지',rank:2,rule:'짧은 시간 동안 가장 많이 반복된 접속 주소를 고르세요.',hints:['각 접속 주소의 등장 횟수를 세어 보세요.','같은 주소가 여러 번 나오는지 확인하세요.','가장 많이 등장한 주소 하나를 선택하면 됩니다.']},
- b1:{type:'blocker',name:'경로 기억',rank:3,rule:'잠깐 표시된 안전한 경로를 기억한 후 순서대로 누르세요.',hints:['경로는 숫자 순서로 표시됩니다.','각 위치에 표시된 번호의 순서를 기억하세요.','기억이 어려우면 경로를 표시할 때 숫자를 따라 읽으세요.']},
+ b1:{type:'blocker',name:'경로 기억',rank:3,rule:'3×3 문자 패널에서 코랄색 테두리가 점등되는 네 칸의 순서를 기억한 뒤 같은 순서로 누르세요.',hints:['코랄색 테두리가 한 번에 한 칸씩 점등됩니다.','숫자와 문자는 위치를 구분하기 위한 표식이며, 점등된 위치의 순서가 정답입니다.','점등이 끝난 뒤 처음 빛난 칸부터 네 칸을 순서대로 누르세요.']},
  b2:{type:'blocker',name:'방어 패턴 회피',rank:2,rule:'위험 표시가 없는 안전 통로를 3회 연속 선택하세요.',hints:['빨간색은 방어 장치가 작동 중인 통로입니다.','현재 안전한 통로 하나만 누르면 됩니다.','안전한 통로는 청록색으로 표시됩니다.']},
  b3:{type:'blocker',name:'방어 장치 해제',rank:3,rule:'장치의 전력 단계를 눌러 목표 설정과 같게 맞추세요.',hints:['장치를 누르면 전력값이 0 → 1 → 2 → 0으로 바뀝니다.','각 열 위의 목표 수치와 실제 수치를 비교하세요.','세 장치의 실제 값이 목표와 모두 같으면 확인을 누르세요.']},
  b4:{type:'blocker',name:'보안벽 통과',rank:4,rule:'움직이는 신호가 노란 안전 구역에 들어왔을 때 통과 버튼을 누르세요.',hints:['신호가 좌우로 움직이고 있습니다.','노란 영역 내부에서 버튼을 누르면 성공합니다.','기회는 충분합니다. 안전 구역 안에 들어오기를 기다리세요.']}
@@ -841,8 +841,92 @@ PUZZLE_BUILDERS.s2=p=>{let seq=['접속 요청','신원 확인','암호 검증',
 PUZZLE_BUILDERS.s3=p=>{let lvl=rnd(3,5),users=shuffle([{name:'분석가',level:lvl},{name:'관리자',level:lvl+1},{name:'방문자',level:lvl-2},{name:'실습생',level:lvl-1}]);let chosen=new Set();setPuzzleContent(`${targetHTML('파일 보안 등급',['등급 '+lvl])}<div class="quiz-instruction">접근 가능한 사용자 <strong>2명</strong>을 선택하세요. 사용자 권한 ≥ 파일 등급</div><div id="accessUsers" class="puzzle-grid cols2"></div><div class="quiz-actions"><span id="accessCount" class="micro">0 / 2 선택</span><button id="accessSubmit">권한 검사</button></div>`);users.forEach((u,i)=>{let b=pButton(`${u.name}\n권한 등급 ${u.level}`,()=>{if(chosen.has(i)){chosen.delete(i);b.classList.remove('selected')}else if(chosen.size<2){chosen.add(i);b.classList.add('selected')}$('#accessCount').textContent=chosen.size+' / 2 선택'});$('#accessUsers').appendChild(b)});$('#accessSubmit').onclick=()=>{if(chosen.size!==2){setFeedback('2명을 선택하세요.','warn');return}if([...chosen].every(i=>users[i].level>=lvl))solvePuzzle();else{failPuzzle('파일 등급보다 권한이 낮은 사용자가 포함되었습니다.');chosen.clear();$$('#accessUsers button').forEach(b=>b.classList.remove('selected'));$('#accessCount').textContent='0 / 2 선택'}}};
 // 12 보안: 주소별 접속 횟수 빈도 분석.
 PUZZLE_BUILDERS.s4=p=>{let ips=shuffle(['10.0.0.8','10.0.0.21','172.16.1.4','192.168.0.7']);let logs=shuffle([ips[0],ips[0],ips[0],ips[0],ips[1],ips[1],ips[2],ips[3]]);setPuzzleContent(`<div class="quiz-instruction">아래 기록에서 <strong>가장 여러 번 등장한 접속 주소</strong>를 찾으세요.</div><div class="target-line" style="justify-content:center;flex-wrap:wrap">${logs.map(x=>`<span class="code-chip" style="font-size:13px">${x}</span>`).join('')}</div><div id="ipChoices" class="puzzle-grid cols2"></div>`);shuffle(ips).forEach(ip=>$('#ipChoices').appendChild(pButton(ip,()=>ip===ips[0]?solvePuzzle():failPuzzle('접속 주소의 반복 횟수를 다시 세어 보세요.'))))};
-// 13 차단: 3×3 공간 기억, 표시 후 가려진 경로 재현.
-PUZZLE_BUILDERS.b1=p=>{let path=shuffle(Array.from({length:9},(_,i)=>i)).slice(0,game.diff==='easy'?3:4),pos=0,ready=false;setPuzzleContent(`<div class="quiz-instruction" id="memoryMessage">먼저 <strong>경로 표시</strong>를 누르고 숫자를 기억하세요.</div><div id="memoryGrid" class="puzzle-grid cols3 narrow-grid"></div><div class="quiz-actions"><span id="memoryProgress" class="micro">준비</span><button id="memoryStart">경로 표시</button></div>`);let bs=[];for(let i=0;i<9;i++){let b=pButton('·',()=>{if(!ready)return;if(path[pos]!==i){failPuzzle('안전 경로의 순서와 다릅니다. 처음부터 다시 선택하세요.');pos=0;$('#memoryProgress').textContent='0 / '+path.length;return}pos++;b.classList.add('selected');$('#memoryProgress').textContent=pos+' / '+path.length;if(pos===path.length)solvePuzzle()});b.style.height='62px';$('#memoryGrid').appendChild(b);bs.push(b)}$('#memoryStart').onclick=()=>{ready=false;pos=0;bs.forEach((b,i)=>{b.textContent=path.includes(i)?String(path.indexOf(i)+1):'·';b.classList.remove('selected')});$('#memoryMessage').textContent='숫자가 적힌 경로를 순서대로 기억하세요.';$('#memoryProgress').textContent='기억 중';$('#memoryStart').disabled=true;later(()=>{if(puzzle!==p||game.phase==='failed')return;bs.forEach(b=>b.textContent='●');ready=true;$('#memoryMessage').textContent='기억한 순서대로 칸을 눌러 주세요.';$('#memoryProgress').textContent='0 / '+path.length;$('#memoryStart').disabled=false;$('#memoryStart').textContent='다시 보기 (-100점)'},3200)};const original=$('#memoryStart').onclick;$('#memoryStart').onclick=()=>{if($('#memoryStart').textContent.includes('다시 보기')){game.score=Math.max(0,game.score-100);updateHud()}original()}};
+// 13 차단: 랜덤 3×3 문자 패널의 코랄색 점등 순서를 기억하는 4단계 퍼즐.
+PUZZLE_BUILDERS.b1=p=>{
+ const symbols=shuffle(['1','2','3','4','5','A','B','C','D']);
+ const path=shuffle(Array.from({length:9},(_,i)=>i)).slice(0,4);
+ const cueMs=game.diff==='hard'?620:850;
+ const gapMs=game.diff==='hard'?190:260;
+ let pos=0,ready=false,plays=0,sequenceId=0;
+ setPuzzleContent(`<div class="memory-sequence">
+  <div class="memory-sequence-top"><span class="memory-kicker">MEMORY TRACE / 4 SIGNALS</span><span id="memoryProgress" class="memory-count" aria-live="polite">0 / 4</span></div>
+  <div class="quiz-instruction" id="memoryMessage" aria-live="polite">숫자와 문자로 표시된 아홉 칸을 확인하고 <strong>패턴 보기</strong>를 누르세요. 코랄색 외곽선이 켜지는 순서를 기억해야 합니다.</div>
+  <div id="memoryGrid" class="puzzle-grid cols3 narrow-grid memory-grid" role="group" aria-label="3행 3열 기억 패널"></div>
+  <div class="quiz-actions memory-actions"><span id="memoryState" class="micro">SIGNAL READY</span><button id="memoryStart" type="button">패턴 보기</button></div>
+ </div>`);
+ const grid=$('#memoryGrid'),startBtn=$('#memoryStart'),message=$('#memoryMessage'),progress=$('#memoryProgress'),state=$('#memoryState');
+ const bs=symbols.map((symbol,i)=>{
+  const b=pButton(symbol,()=>{
+   if(!ready||puzzle!==p||p.solved)return;
+   if(path[pos]!==i){
+    ready=false;
+    pos=0;
+    bs.forEach(tile=>tile.classList.remove('is-correct','is-wrong'));
+    b.classList.add('is-wrong');
+    progress.textContent='0 / 4';
+    state.textContent='SIGNAL MISMATCH';
+    message.textContent='순서가 다릅니다. 첫 번째 칸부터 다시 선택하세요.';
+    failPuzzle('점등된 네 칸의 순서와 다릅니다.');
+    const wrongSequenceId=sequenceId;
+    later(()=>{
+     if(!alive(wrongSequenceId))return;
+     b.classList.remove('is-wrong');
+     ready=true;
+     state.textContent='INPUT READY';
+    },550);
+    return;
+   }
+   b.classList.add('is-correct');
+   pos++;
+   progress.textContent=pos+' / 4';
+   state.textContent='SIGNAL MATCH '+pos+' / 4';
+   if(pos===path.length){ready=false;solvePuzzle()}
+  },{className:'memory-tile'});
+  b.type='button';
+  b.setAttribute('aria-label',symbol+' 위치 선택');
+  grid.appendChild(b);
+  return b;
+ });
+ function alive(id){return id===sequenceId&&puzzle===p&&!p.solved&&game&&game.phase!=='failed'}
+ function flashNext(step,id){
+  if(!alive(id))return;
+  if(step>=path.length){
+   ready=true;
+   progress.textContent='0 / 4';
+   state.textContent='INPUT READY';
+   message.textContent='방금 점등된 네 칸을 처음부터 순서대로 누르세요.';
+   startBtn.disabled=false;
+   startBtn.textContent='다시 보기 (-100점)';
+   return;
+  }
+  const tile=bs[path[step]];
+  tile.classList.add('is-cued');
+  state.textContent='SIGNAL '+(step+1)+' / 4';
+  later(()=>{
+   if(!alive(id))return;
+   tile.classList.remove('is-cued');
+   later(()=>flashNext(step+1,id),gapMs);
+  },cueMs);
+ }
+ startBtn.onclick=()=>{
+  if(!game||puzzle!==p||p.solved||!['map','core'].includes(game.phase))return;
+  if(plays>0){
+   game.score=Math.max(0,game.score-100);
+   updateHud();
+  }
+  plays++;
+  const id=++sequenceId;
+  ready=false;
+  pos=0;
+  bs.forEach(tile=>tile.classList.remove('is-cued','is-correct','is-wrong'));
+  progress.textContent='● ● ● ●';
+  state.textContent='SEQUENCE STARTING';
+  message.textContent='코랄색 테두리가 켜지는 위치를 차례대로 기억하세요.';
+  startBtn.disabled=true;
+  startBtn.textContent='점등 중...';
+  later(()=>flashNext(0,id),550);
+ };
+};
 // 14 차단: 매 라운드 안전 통로 판별.
 PUZZLE_BUILDERS.b2=p=>{let round=0,total=3;setPuzzleContent(`<div class="target-line"><span class="label">안전 통로 선택</span><strong id="safeProgress" style="color:var(--yellow)">1 / ${total}</strong></div><div class="quiz-instruction">작동 중인 빨간 차단 장치를 피하고 <strong>청록색 통로</strong>를 선택하세요.</div><div id="safePaths" class="puzzle-grid cols3"></div>`);function showRound(){let good=rnd(0,2),holder=$('#safePaths');holder.innerHTML='';$('#safeProgress').textContent=(round+1)+' / '+total;for(let i=0;i<3;i++){let ok=i===good;let b=pButton(`통로 ${i+1}\n${ok?'안전':'차단 중'}`,()=>{if(!ok){failPuzzle('차단 장치가 작동 중인 통로입니다.');return}round++;if(round>=total)solvePuzzle();else{setFeedback('안전 통과! 다음 구간을 확인하세요.');later(showRound,230)}});b.style.borderColor=ok?'rgba(57,236,241,.65)':'rgba(255,71,107,.60)';b.style.color=ok?'#39ecf1':'#ff9cad';holder.appendChild(b)}}showRound()};
 // 15 차단: 세 독립 장치의 0/1/2 전력 수준 맞춤.
