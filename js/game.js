@@ -98,7 +98,7 @@ function puzzleTune(key){return {...tuneDefaults(key),...(puzzleTuning[key]||{})
 function persistPuzzleTune(){store(PUZZLE_TUNING_STORAGE,puzzleTuning)}
 
 let screen='menu',previousScreen='menu',diff='easy',tutorialStage=0,tutorialSolved=false,game=null,puzzle=null,overlayMode='',pauseActive=false,toastTimer=0,audioCtx=null,frameTime=performance.now(),lastHud=0,activeTimers=[];
-let rankSort='score',rankDiff='easy';
+let rankSort='overall',rankDiff='easy';
 let devAuthenticated=false,devAttempts=0,devLockUntil=0,devTest=false,devTestKey='',devResults={},devGameplay=false;
 const DEV_PASSWORD_HASH='51c31039';
 function sound(name='click') {if(!settings.sound||settings.volume<=0)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});let notes={click:[[620,.035],[890,.025]],ok:[[660,.055],[970,.09]],bad:[[270,.095],[190,.1]],alert:[[680,.13],[430,.13]],complete:[[520,.1],[740,.13],[1040,.18]]}[name]||[[650,.03]];let when=audioCtx.currentTime+.004;for(let [freq,dur] of notes){let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=name==='bad'?'sawtooth':'square';o.frequency.setValueAtTime(freq,when);o.frequency.exponentialRampToValueAtTime(freq*.88,when+dur);let vol=settings.volume/100*(name==='click'?.034:.050);g.gain.setValueAtTime(.0001,when);g.gain.exponentialRampToValueAtTime(vol,when+.008);g.gain.exponentialRampToValueAtTime(.0001,when+dur);o.connect(g).connect(audioCtx.destination);o.start(when);o.stop(when+dur+.004);when+=dur*.75}}catch{}}
@@ -969,9 +969,29 @@ function normalizeRankingRecord(record,index){
 }
 function compareRankingRecords(a,b,metric){
  const traceOrder=a.trace===null?(b.trace===null?0:1):b.trace===null?-1:a.trace-b.trace;
+ if(metric==='overall')return b.overall-a.overall||b.score-a.score||a.time-b.time||traceOrder||b.index-a.index;
  if(metric==='time')return a.time-b.time||b.score-a.score||traceOrder||b.index-a.index;
  if(metric==='trace')return traceOrder||b.score-a.score||a.time-b.time||b.index-a.index;
  return b.score-a.score||a.time-b.time||traceOrder||b.index-a.index;
+}
+// Overall index is a 0–100 weighted percentile across valid records in the selected difficulty.
+// Equal raw metric values receive equal percentile credit; missing trace earns no trace credit.
+function assignOverallRankingScores(records){
+ const count=records.length;
+ records.forEach(r=>{r.overall=0});
+ if(!count)return records;
+ const metrics=[{key:'score',weight:.5,ascending:false},{key:'time',weight:.3,ascending:true},{key:'trace',weight:.2,ascending:true}];
+ metrics.forEach(({key,weight,ascending})=>{
+  const ordered=records.filter(r=>r[key]!==null).sort((a,b)=>ascending?a[key]-b[key]:b[key]-a[key]);
+  let firstAt=0;
+  ordered.forEach((record,i)=>{
+   if(i>0&&record[key]!==ordered[i-1][key])firstAt=i;
+   const percentile=count===1?100:100*(count-1-firstAt)/(count-1);
+   record.overall+=weight*percentile;
+  });
+ });
+ records.forEach(r=>{r.overall=Math.round(r.overall*10)/10});
+ return records;
 }
 function formatRankingTime(seconds){
  const centis=Math.round(seconds*100);
@@ -980,19 +1000,21 @@ function formatRankingTime(seconds){
 function renderRanking(){
  const raw=read(STORAGE,[]);
  const records=(Array.isArray(raw)?raw:[]).map(normalizeRankingRecord).filter(Boolean).filter(r=>r.diff===rankDiff);
+ assignOverallRankingScores(records);
  records.sort((a,b)=>compareRankingRecords(a,b,rankSort));
  const visible=records.slice(0,20);
  $('#rankingRows').innerHTML=visible.length?visible.map((r,i)=>`<tr>
   <td class="rank-number">${i+1}</td>
   <td>${esc(r.nickname)}</td>
   <td>${esc(r.grade)}</td>
+  <td class="${rankSort==='overall'?'rank-primary rank-overall':'rank-overall'}">${r.overall.toFixed(1)}</td>
   <td class="${rankSort==='score'?'rank-primary':''}">${fmt(r.score)}</td>
   <td class="${rankSort==='time'?'rank-primary':''} rank-time">${formatRankingTime(r.time)}</td>
   <td class="${rankSort==='trace'?'rank-primary':''}">${r.trace===null?'—':r.trace+'%'}</td>
   <td>${esc(r.date)}</td>
- </tr>`).join(''):'<tr><td colspan="7" class="rank-empty">해당 난이도에 저장된 기록이 없습니다. 먼저 게임을 클리어하고 닉네임을 등록하세요.</td></tr>';
- const labels={score:'최고 점수순',time:'최단 시간순',trace:'최저 추적도순'};
- const rules={score:'동점: 소요 시간 → 추적도 → 최신 기록',time:'동률: 점수 → 추적도 → 최신 기록',trace:'동률: 점수 → 소요 시간 → 최신 기록'};
+ </tr>`).join(''):'<tr><td colspan="8" class="rank-empty">해당 난이도에 저장된 기록이 없습니다. 먼저 게임을 클리어하고 닉네임을 등록하세요.</td></tr>';
+ const labels={overall:'종합 지수순',score:'최고 점수순',time:'최단 시간순',trace:'최저 추적도순'};
+ const rules={overall:'점수 50% · 시간 30% · 추적도 20% | 동률: 점수 → 시간 → 추적도',score:'동점: 소요 시간 → 추적도 → 최신 기록',time:'동률: 점수 → 추적도 → 최신 기록',trace:'동률: 점수 → 소요 시간 → 최신 기록'};
  $('#rankingSummary').textContent=`${rankDiff==='hard'?'어려움':'쉬움'} · ${labels[rankSort]} · ${records.length}개 기록${records.length>20?' (상위 20개 표시)':''}`;
  $('#rankingRule').textContent=rules[rankSort];
  $$('[data-sort]').forEach(b=>{
@@ -1006,7 +1028,7 @@ function renderRanking(){
   b.setAttribute('aria-pressed',String(selected));
  });
  $$('[data-rank-column]').forEach(th=>{
-  th.setAttribute('aria-sort',th.dataset.rankColumn===rankSort?(rankSort==='score'?'descending':'ascending'):'none');
+  th.setAttribute('aria-sort',th.dataset.rankColumn===rankSort?(rankSort==='score'||rankSort==='overall'?'descending':'ascending'):'none');
  });
 }
 $$('[data-sort]').forEach(b=>b.onclick=()=>{rankSort=b.dataset.sort;renderRanking()});$$('[data-rankdiff]').forEach(b=>b.onclick=()=>{rankDiff=b.dataset.rankdiff;renderRanking()});
