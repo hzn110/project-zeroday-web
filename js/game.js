@@ -845,14 +845,14 @@ PUZZLE_BUILDERS.s4=p=>{let ips=shuffle(['10.0.0.8','10.0.0.21','172.16.1.4','192
 PUZZLE_BUILDERS.b1=p=>{
  const symbols=shuffle(['1','2','3','4','5','A','B','C','D']);
  const path=shuffle(Array.from({length:9},(_,i)=>i)).slice(0,4);
- const cueMs=game.diff==='hard'?620:850;
- const gapMs=game.diff==='hard'?190:260;
+ let cueMs=game.diff==='hard'?320:440;
+ let gapMs=game.diff==='hard'?110:150;
  let pos=0,ready=false,plays=0,sequenceId=0;
  setPuzzleContent(`<div class="memory-sequence">
   <div class="memory-sequence-top"><span class="memory-kicker">MEMORY TRACE / 4 SIGNALS</span><span id="memoryProgress" class="memory-count" aria-live="polite">0 / 4</span></div>
-  <div class="quiz-instruction" id="memoryMessage" aria-live="polite">숫자와 문자로 표시된 아홉 칸을 확인하고 <strong>패턴 보기</strong>를 누르세요. 코랄색 외곽선이 켜지는 순서를 기억해야 합니다.</div>
+  <div class="quiz-instruction" id="memoryMessage" aria-live="polite">숫자와 문자로 표시된 아홉 칸을 확인하고 <strong>패턴 보기</strong>를 누르세요. 처음에는 빠르게 점등되며, 다시 보기는 100점을 사용해 느리게 볼 수 있습니다.</div>
   <div id="memoryGrid" class="puzzle-grid cols3 narrow-grid memory-grid" role="group" aria-label="3행 3열 기억 패널"></div>
-  <div class="quiz-actions memory-actions"><span id="memoryState" class="micro">SIGNAL READY</span><button id="memoryStart" type="button">패턴 보기</button></div>
+  <div class="quiz-actions memory-actions"><span id="memoryState" class="micro">SIGNAL READY</span><button id="memoryStart" type="button">패턴 보기 (빠르게)</button></div>
  </div>`);
  const grid=$('#memoryGrid'),startBtn=$('#memoryStart'),message=$('#memoryMessage'),progress=$('#memoryProgress'),state=$('#memoryState');
  const bs=symbols.map((symbol,i)=>{
@@ -896,7 +896,7 @@ PUZZLE_BUILDERS.b1=p=>{
    state.textContent='INPUT READY';
    message.textContent='방금 점등된 네 칸을 처음부터 순서대로 누르세요.';
    startBtn.disabled=false;
-   startBtn.textContent='다시 보기 (-100점)';
+   startBtn.textContent='느리게 다시 보기 (-100점)';
    return;
   }
   const tile=bs[path[step]];
@@ -910,18 +910,21 @@ PUZZLE_BUILDERS.b1=p=>{
  }
  startBtn.onclick=()=>{
   if(!game||puzzle!==p||p.solved||!['map','core'].includes(game.phase))return;
-  if(plays>0){
+  const replay=plays>0;
+  if(replay){
    game.score=Math.max(0,game.score-100);
    updateHud();
   }
+  cueMs=replay?(game.diff==='hard'?900:1150):(game.diff==='hard'?320:440);
+  gapMs=replay?(game.diff==='hard'?270:350):(game.diff==='hard'?110:150);
   plays++;
   const id=++sequenceId;
   ready=false;
   pos=0;
   bs.forEach(tile=>tile.classList.remove('is-cued','is-correct','is-wrong'));
   progress.textContent='● ● ● ●';
-  state.textContent='SEQUENCE STARTING';
-  message.textContent='코랄색 테두리가 켜지는 위치를 차례대로 기억하세요.';
+  state.textContent=replay?'SLOW REPLAY / -100 PT':'FAST SEQUENCE';
+  message.textContent=replay?'느린 속도로 다시 점등합니다. 코랄색 테두리가 켜지는 위치를 기억하세요.':'빠른 속도로 점등합니다. 코랄색 테두리가 켜지는 위치를 기억하세요.';
   startBtn.disabled=true;
   startBtn.textContent='점등 중...';
   later(()=>flashNext(0,id),550);
