@@ -33,6 +33,31 @@
    <div class="menu-footer"><span><span class="v4-led"></span> ENCRYPTED LOCAL SESSION</span><span>PROJECT ZERO-DAY // V4.16</span><span>© 2026 // ZERO-DAY OPERATIONS</span></div>
   </aside>
   <main class="menu-stage v5-stage" id="parallaxZone">
+  <div class="theme-polish-stage" aria-hidden="true">
+   <div class="polish-grid"></div>
+   <div class="depth polish-depth-back">
+    <div class="polish-horizon"></div>
+    <div class="polish-arch arch-a"><span>01</span></div>
+    <div class="polish-arch arch-b"><span>02</span></div>
+    <div class="polish-arch arch-c"><span>03</span></div>
+    <div class="polish-arch arch-d"><span>04</span></div>
+   </div>
+   <div class="depth polish-depth-type">
+    <div class="polish-type-shadow">BREACH / ESCAPE</div>
+    <div class="polish-type-main">BREACH.<br>ESCAPE.<br><em>LEAVE NO TRACE.</em><br>ZERO-DAY.</div>
+    <div class="polish-type-outline">BREACH / ESCAPE</div>
+   </div>
+   <div class="depth polish-depth-front">
+    <span class="polish-data-tag tag-a">NODE_04 / ACTIVE</span>
+    <span class="polish-data-tag tag-b">SECURE // 2048</span>
+    <span class="polish-data-tag tag-c">TRACE 028%</span>
+    <div class="polish-streak streak-a"></div>
+    <div class="polish-streak streak-b"></div>
+   </div>
+   <div class="polish-corner corner-a">// SYSTEM ARCHITECTURE</div>
+   <div class="polish-corner corner-b">LOCAL NETWORK · ZERO-DAY</div>
+   <div class="polish-jp">侵入 実行 脱出</div>
+  </div>
   <div class="depth v5-back-depth" data-depth="3" aria-hidden="true">
    <div class="v5-floor-grid"></div><div class="v5-light-lines"></div><div class="v5-city-glow"></div>
    <div class="v5-city-block city-a"></div><div class="v5-city-block city-b"></div><div class="v5-city-block city-c"></div>
@@ -255,7 +280,21 @@
   </div>
 </div>
 
-<section id="settings" class="screen"><div class="simple-top"><div class="brand mini"><span>PROJECT</span><b>:</b>ZERO-DAY</div><button class="outline small" id="settingsBack">돌아가기</button></div><div class="center-screen"><div class="section-brow">개인 설정</div><h2 class="page-title">설정</h2><div class="panel settings-panel"><div class="setting-row"><div><b>효과음</b><p>버튼 클릭, 성공과 실패, 추적 경고음을 재생합니다.</p></div><label class="switch"><input id="setSound" type="checkbox" checked><span></span></label></div><div class="setting-row"><div><b>효과음 음량</b><p>전자음과 경고음의 소리 크기</p></div><input id="setVolume" type="range" min="0" max="100" value="45"><span id="volumeText">45%</span></div><div class="setting-row"><div><b>움직이는 배경</b><p>마우스를 따라 움직이는 입체 효과</p></div><label class="switch"><input id="setParallax" type="checkbox" checked><span></span></label></div><div class="setting-row"><div><b>화면 흔들림과 글리치</b><p>위험 상황의 강한 시각 효과를 조절합니다.</p></div><label class="switch"><input id="setMotion" type="checkbox" checked><span></span></label></div><div class="setting-row"><div><b>글자 크기 확대</b><p>규칙과 퍼즐 안내를 더 크게 표시합니다.</p></div><label class="switch"><input id="setLargeText" type="checkbox"><span></span></label></div><div class="action-row"><div class="grow"></div><button id="saveSettings" class="bright">설정 저장</button></div></div></div></section>
+<section id="settings" class="screen"><div class="simple-top"><div class="brand mini"><span>PROJECT</span><b>:</b>ZERO-DAY</div><button class="outline small" id="settingsBack">돌아가기</button></div><div class="center-screen"><div class="section-brow">개인 설정</div><h2 class="page-title">설정</h2><div class="panel settings-panel">
+ <div class="theme-picker">
+  <div class="theme-picker-heading"><b>화면 테마</b><p>테마를 선택하면 바로 미리볼 수 있습니다. 저장을 누르면 다음 접속에도 유지됩니다.</p></div>
+  <div class="theme-options" role="group" aria-label="화면 테마 선택">
+   <button type="button" class="theme-option selected" data-theme-option="console" aria-pressed="true">
+    <span class="theme-preview theme-preview-console" aria-hidden="true"><i class="theme-mini-node n1"></i><i class="theme-mini-node n2"></i><i class="theme-mini-node n3"></i><i class="theme-mini-link"></i><span>NETWORK / LIVE</span></span>
+    <strong>SYSTEM CONSOLE</strong><small>기본 · 네트워크 HUD</small>
+   </button>
+   <button type="button" class="theme-option" data-theme-option="polish" aria-pressed="false">
+    <span class="theme-preview theme-preview-polish" aria-hidden="true"><span class="theme-mini-type">BREACH.<br>ESCAPE.<br><em>ZERO-DAY.</em></span><i class="theme-mini-frame"></i></span>
+    <strong>HUD POLISH</strong><small>클래식 · 네온 타이포그래피</small>
+   </button>
+  </div>
+ </div>
+ <div class="setting-row"><div><b>효과음</b><p>버튼 클릭, 성공과 실패, 추적 경고음을 재생합니다.</p></div><label class="switch"><input id="setSound" type="checkbox" checked><span></span></label></div><div class="setting-row"><div><b>효과음 음량</b><p>전자음과 경고음의 소리 크기</p></div><input id="setVolume" type="range" min="0" max="100" value="45"><span id="volumeText">45%</span></div><div class="setting-row"><div><b>움직이는 배경</b><p>마우스를 따라 움직이는 입체 효과</p></div><label class="switch"><input id="setParallax" type="checkbox" checked><span></span></label></div><div class="setting-row"><div><b>화면 흔들림과 글리치</b><p>위험 상황의 강한 시각 효과를 조절합니다.</p></div><label class="switch"><input id="setMotion" type="checkbox" checked><span></span></label></div><div class="setting-row"><div><b>글자 크기 확대</b><p>규칙과 퍼즐 안내를 더 크게 표시합니다.</p></div><label class="switch"><input id="setLargeText" type="checkbox"><span></span></label></div><div class="action-row"><div class="grow"></div><button id="saveSettings" class="bright">설정 저장</button></div></div></div></section>
 <div id="devGameBar" class="dev-game-bar hidden">
   <span class="dev-game-mark">DEV SANDBOX</span>
   <button id="devAddTime">+60초</button>
