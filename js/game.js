@@ -281,8 +281,8 @@ function renderDevDashboard(){
    </article>`;
   }).join('')}</div></section>`;
  }).join('');
- $('[data-dev-puzzle]').forEach(btn=>btn.onclick=()=>openDevPuzzle(btn.dataset.devPuzzle));
- $('[data-dev-tune]').forEach(btn=>btn.onclick=()=>{
+ $$('[data-dev-puzzle]').forEach(btn=>btn.onclick=()=>openDevPuzzle(btn.dataset.devPuzzle));
+ $$('[data-dev-tune]').forEach(btn=>btn.onclick=()=>{
   devTuneSelectedKey=btn.dataset.devTune;
   renderDevTuneEditor();
   $('#devTuningPanel').scrollIntoView({behavior:'smooth',block:'start'});
