@@ -1,12 +1,12 @@
 {
-  "testedAt": "2026-11-11T03:05:41.452Z",
-  "site": "https://hzn110.github.io/project-zeroday-web/?exhibition_qa=4.26.2",
+  "testedAt": "2026-11-11T03:08:10.917Z",
+  "site": "https://hzn110.github.io/project-zeroday-web/?exhibition_qa=4.26.3",
   "engine": "Chromium / Playwright",
   "checks": [
     {
       "name": "Live GitHub Pages is deployed, starts without JavaScript errors",
       "status": "PASS",
-      "detail": "js/game.js?v=4.26.2"
+      "detail": "js/game.js?v=4.26.3"
     },
     {
       "name": "Chromium QA browser loads current game",
@@ -175,8 +175,8 @@
     },
     {
       "name": "Memory automatically illuminates then enables input (Easy)",
-      "status": "FAIL",
-      "error": "invisible cue {\"computed\":\"rgba(0, 0, 0, 0)\",\"inline\":\"background-color: rgb(255, 140, 112) !important; color: rgb(7, 16, 25) !important; border-color: rgb(255, 241, 181) !important; border-width: 4px !important; box-shadow: rgb(255, 96, 73) 0px 0px 0px 4px, rgba(255, 112, 82, 0.95) 0px 0px 32px 8px, rgb(255, 240, 205) 0px 0px 20px inset !important; transform: scale(1.075) !important;\",\"cls\":\"memory-tile is-cued\"}"
+      "status": "PASS",
+      "detail": "rgb(255, 140, 112)"
     },
     {
       "name": "Memory autoplays five cues in Hard",
@@ -220,8 +220,8 @@
     },
     {
       "name": "Hard ranking optional contact stored but not publicly displayed",
-      "status": "FAIL",
-      "error": "phone not stored"
+      "status": "PASS",
+      "detail": ""
     },
     {
       "name": "Easy ranking saves without requesting contact",
@@ -234,17 +234,8 @@
       "detail": ""
     }
   ],
-  "failures": [
-    {
-      "name": "Memory automatically illuminates then enables input (Easy)",
-      "error": "Error: invisible cue {\"computed\":\"rgba(0, 0, 0, 0)\",\"inline\":\"background-color: rgb(255, 140, 112) !important; color: rgb(7, 16, 25) !important; border-color: rgb(255, 241, 181) !important; border-width: 4px !important; box-shadow: rgb(255, 96, 73) 0px 0px 0px 4px, rgba(255, 112, 82, 0.95) 0px 0px 32px 8px, rgb(255, 240, 205) 0px 0px 20px inset !important; transform: scale(1.075) !important;\",\"cls\":\"memory-tile is-cued\"}\n    at ok (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:6:30)\n    at /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:57:3\n    at async check (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:7:48)\n    at async run (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:51:2)\n    at async /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:124:16"
-    },
-    {
-      "name": "Hard ranking optional contact stored but not publicly displayed",
-      "error": "Error: phone not stored\n    at ok (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:6:30)\n    at /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:112:3\n    at async check (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:7:48)\n    at async run (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:107:2)\n    at async /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:124:16"
-    }
-  ],
-  "passed": 44,
+  "failures": [],
+  "passed": 46,
   "total": 46,
-  "verdict": "FAIL"
+  "verdict": "PASS"
 }
