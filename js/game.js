@@ -1264,42 +1264,30 @@ PUZZLE_BUILDERS.d1=p=>{const size=5,codes=['1C','55','7A','BD','E9','FF'];let le
 PUZZLE_BUILDERS.d2=p=>{let start=rnd(6,24),delta=pick([3,4,5,6,-2,-3]);let nums=Array.from({length:5},(_,i)=>start+delta*i),answer=start+delta*5;let options=shuffle([answer,answer+2,answer+delta,answer-2]);setPuzzleContent(targetHTML('암호 데이터',nums)+`<div class="quiz-instruction">빈칸에 들어갈 여섯 번째 수를 누르세요.</div><div id="patternAnswers" class="puzzle-grid"></div>`);options.forEach(x=>$('#patternAnswers').appendChild(pButton(String(x),()=>x===answer?solvePuzzle():failPuzzle('숫자 사이의 일정한 차이를 다시 확인하세요.'))))};
 // 07 데이터: 데이터 조각의 체크섬을 계산하고 순서대로 복구.
 PUZZLE_BUILDERS.d3=p=>{
- const hard=game.diff==='hard',total=hard?5:4;
- const chunks=Array.from({length:total},(_,i)=>{
-  const id=i+1,a=rnd(2,9),b=rnd(2,9),salt=rnd(1,5);
-  return {id,a,b,salt,checksum:(a*3+b*2+salt)%10};
- });
- let pos=0,selected=null;
- setPuzzleContent(`<div class="quiz-instruction">패킷 순서를 복원하고 각 조각의 <strong>검증값(CHECK)</strong>을 계산하세요. 계산 규칙: <strong>(A × 3 + B × 2 + KEY) 의 일의 자리</strong>. ${hard?'HARD: 5개 패킷을 순서대로 검증해야 합니다.':'EASY: 4개 패킷을 검증합니다.'}</div>
- <div class="target-line"><span class="label">복원 진행</span><strong id="fragmentProgress" style="color:var(--yellow)">0 / ${total}</strong></div>
+ const hard=game.diff==='hard';
+ const labels=hard?['AUTH','PACKET','ROUTE','CHECK','COMMIT']:['START','DATA','VERIFY','END'];
+ const countTotal=labels.length;
+ // Hard mode uses packet dependency fields rather than visible sequential packet IDs.
+ const chain=labels.map((label,i)=>({label,id:hard?('0x'+(0xA1+i*23).toString(16).toUpperCase()):String(i+1).padStart(2,'0'),prev:i?null:'ENTRY',next:i===countTotal-1?'EXIT':null}));
+ for(let i=1;i<countTotal;i++)chain[i].prev=chain[i-1].id;
+ for(let i=0;i<countTotal-1;i++)chain[i].next=chain[i+1].id;
+ let pos=0,chosen=new Set(),current='ENTRY';
+ setPuzzleContent(`<div class="quiz-instruction">${hard?'각 데이터 조각의 <strong>PREV</strong>가 이전 조각의 ID와 일치하도록 전송 경로를 복구하세요. ENTRY에서 시작합니다.':'전송 순번 <strong>01 → 02 → 03 → 04</strong>에 맞춰 데이터를 복구하세요.'}</div>
  <div id="fragmentGrid" class="puzzle-grid cols2 fragment-grid"></div>
- <div class="quiz-instruction" id="fragmentPrompt">먼저 패킷 01을 선택하세요.</div>
- <div class="quiz-actions" style="align-items:center;flex-wrap:wrap"><span class="micro">CHECK 값</span><div id="fragmentDigits" style="display:flex;gap:5px;flex-wrap:wrap"></div></div>`);
- const grid=$('#fragmentGrid'),digits=$('#fragmentDigits');
- const buttons=new Map();
- function drawDigits(){
-  digits.innerHTML='';
-  for(let i=0;i<=9;i++){
-   const b=pButton(String(i),()=>{
-    if(puzzle!==p||p.solved||!selected)return;
-    if(i!==selected.checksum){failPuzzle('검증값 불일치. A×3 + B×2 + KEY의 일의 자리를 계산하세요.');return}
-    const done=selected;buttons.get(done.id).disabled=true;buttons.get(done.id).classList.add('success');
-    selected=null;pos++;$('#fragmentProgress').textContent=pos+' / '+total;
-    if(pos===total){solvePuzzle();return}
-    $('#fragmentPrompt').textContent='검증 성공. 다음 패킷 '+String(pos+1).padStart(2,'0')+'을 선택하세요.';
-    digits.innerHTML='';
-   },{small:true});b.style.minWidth='36px';digits.appendChild(b);
-  }
- }
- shuffle(chunks).forEach(chunk=>{
-  const b=pButton(`PACKET ${String(chunk.id).padStart(2,'0')}\\nA:${chunk.a}  B:${chunk.b}  KEY:${chunk.salt}`,()=>{
-   if(puzzle!==p||p.solved||selected)return;
-   if(chunk.id!==pos+1){failPuzzle('전송 순서가 올바르지 않습니다. 다음 패킷 번호를 확인하세요.');return}
-   selected=chunk;
-   $('#fragmentPrompt').textContent='PACKET '+String(chunk.id).padStart(2,'0')+' 검증값을 계산하여 아래 숫자를 선택하세요.';
-   drawDigits();
-  },{className:'fragment-packet'});
-  b.style.whiteSpace='pre-line';buttons.set(chunk.id,b);grid.appendChild(b);
+ <div class="target-line"><span class="label">복원 상태</span><strong id="fragmentProgress" style="color:var(--yellow)">0 / ${countTotal}</strong></div>
+ ${hard?'<div class="quiz-instruction">연결 규칙: 현재 ID → 다음 조각의 PREV. 조각의 표시 순서는 매번 달라집니다.</div>':''}`);
+ const holder=$('#fragmentGrid');
+ shuffle(chain).forEach((part,i)=>{
+  const caption=hard?`${part.label}\nID ${part.id}  /  PREV ${part.prev}`:`${part.id} · ${part.label}`;
+  const b=pButton(caption,()=>{
+   if(chosen.has(i)||p.solved)return;
+   const valid=hard?part.prev===current:part.id===String(pos+1).padStart(2,'0');
+   if(!valid){failPuzzle(hard?'이 조각의 PREV와 앞 조각의 ID가 일치하지 않습니다.':'전송 순번을 다시 확인하세요.');return}
+   chosen.add(i);pos++;current=part.id;b.classList.add('success');b.disabled=true;
+   $('#fragmentProgress').textContent=pos+' / '+countTotal;
+   if(pos===countTotal)solvePuzzle();else setFeedback(hard?`연결 성공 · 다음 조각의 PREV = ${current}`:'다음 데이터 조각을 선택하세요.');
+  });
+  holder.appendChild(b);
  });
 };
 // 08 데이터: 주 데이터와 복제본 차이 찾기.
@@ -1427,67 +1415,36 @@ PUZZLE_BUILDERS.b1=p=>{
 };
 // 14 차단: 방화벽이 잠시 공개하는 안전 경로를 기억하고 라운드별로 통과.
 PUZZLE_BUILDERS.b2=p=>{
- const hard=game.diff==='hard',total=hard?5:4;
- let round=0,locked=true,showing=false;
- const delay=hard?1050:1600;
- setPuzzleContent(`<div class="target-line"><span class="label">방어 패턴 분석</span><strong id="safeProgress" style="color:var(--yellow)">1 / ${total}</strong></div>
- <div class="quiz-instruction">각 구간에서 <strong>청록색 안전 경로가 잠깐 공개</strong>됩니다. 이후 모든 경로가 차단 상태로 바뀌면 방금 확인한 안전 경로를 선택하세요. ${hard?'HARD: 공개 시간이 더 짧고, 구간이 5개입니다.':'EASY: 공개 시간이 넉넉하며, 구간이 4개입니다.'}</div>
- <div id="safeNotice" class="micro" style="margin:12px 0;color:var(--cyan)">보안 패턴 스캔 중...</div>
- <div id="safePaths" class="puzzle-grid cols3 safe-path-grid" role="group" aria-label="세 통로 중 안전 경로를 기억하고 선택"></div>`);
- const holder=$('#safePaths');
- function roundStart(){
+ const hard=game.diff==='hard',total=hard?5:3;
+ let round=0,locked=false;
+ setPuzzleContent(`<div class="target-line"><span class="label">안전 통로 선택</span><strong id="safeProgress" style="color:var(--yellow)">1 / ${total}</strong></div>
+ <div class="quiz-instruction">${hard?'보안 시스템이 통로 표식을 교란했습니다. <strong>청록색으로 표시된 통신 경로</strong>를 찾아 통과하세요.':'작동 중인 적색 차단 장치를 피하고 <strong>청록색 통로</strong>를 선택하세요.'}</div>
+ <div id="safePaths" class="puzzle-grid cols3 safe-path-grid" role="group" aria-label="통로 3개 중 안전 경로 선택"></div>`);
+ function showRound(){
   if(puzzle!==p||p.solved)return;
-  locked=true;showing=true;const good=rnd(0,2);
-  holder.innerHTML='';$('#safeProgress').textContent=(round+1)+' / '+total;
-  $('#safeNotice').textContent='안전 경로 탐지 중 — 청록색 위치를 기억하세요!';
-  const buttons=[];
+  locked=false;const good=rnd(0,2),holder=$('#safePaths');holder.innerHTML='';
+  $('#safeProgress').textContent=(round+1)+' / '+total;
   for(let i=0;i<3;i++){
    const ok=i===good;
-   const b=pButton('경로 '+(i+1)+'\\n'+(ok?'◈ 안전 신호':'× 위험 신호'),()=>{
-    if(locked||p.solved||puzzle!==p)return;
-    if(!ok){failPuzzle('안전 경로를 잘못 기억했습니다. 해당 구간을 다시 분석하세요.');roundStart();return}
+   const label=hard?`경로 ${i+1}\n${ok?'◇ LINK':'✕ BLOCK'}`:`통로 ${i+1}\n${ok?'안전':'차단 중'}`;
+   const b=pButton(label,()=>{
+    if(locked||p.solved)return;
+    if(!ok){failPuzzle('적색 차단 경로입니다. 청록색 표시를 확인하세요.');return}
     locked=true;b.classList.add('success');round++;
-    if(round===total){solvePuzzle();return}
-    $('#safeNotice').textContent='우회 성공! 다음 방화벽을 분석합니다.';
-    later(roundStart,puzzleTune('b2').nextDelay);
-   },{className:'safe-path-tile'});
-   b.style.whiteSpace='pre-line';
+    if(round>=total){solvePuzzle();return}
+    setFeedback('안전 통과! 다음 구간을 확인하세요.');
+    later(showRound,puzzleTune('b2').nextDelay);
+   });
+   b.classList.add('safe-path-tile',ok?'path-safe':'path-blocked');
    b.style.borderColor=ok?'#39ecf1':'#ff476b';
    b.style.color=ok?'#39ecf1':'#ff9cad';
-   b.style.background=ok?'rgba(57,236,241,.23)':'rgba(255,71,107,.09)';
-   holder.appendChild(b);buttons.push(b);
+   holder.appendChild(b);
   }
-  later(()=>{
-   if(puzzle!==p||p.solved||!showing)return;
-   showing=false;locked=false;
-   $('#safeNotice').textContent='스캔 종료 — 기억한 안전 경로를 선택하세요.';
-   buttons.forEach((b,i)=>{b.textContent='경로 '+(i+1)+'\\n신호 차단';b.style.color='';b.style.borderColor='';b.style.background='';});
-  },delay);
  }
- roundStart();
+ showRound();
 };
-// 15 차단: 연결된 장치의 연쇄 반응을 역산하여 목표 전력 맞춤.
-PUZZLE_BUILDERS.b3=p=>{
- const hard=game.diff==='hard',count=hard?4:3;
- const solution=Array.from({length:count},()=>rnd(0,2));
- const target=Array.from({length:count},(_,i)=>(solution[i]+solution[(i-1+count)%count])%3);
- const actual=Array(count).fill(0);
- const rules=Array.from({length:count},(_,i)=>hard?[i,(i+1)%count]:[i,(i+1)%count]);
- const clicks=Array(count).fill(0);
- setPuzzleContent(`<div class="quiz-instruction">보안 장치는 <strong>서로 연결</strong>되어 있습니다. 버튼을 누르면 해당 장치와 <strong>오른쪽 장치가 동시에 1단계 상승</strong>합니다(2 다음은 0). 목표 전력을 만들려면 연쇄 작동을 계산해야 합니다. ${hard?'HARD: 4개 장치':'EASY: 3개 장치'}</div>
- <div class="target-line"><span class="label">목표 전력</span>${target.map((x,i)=>`<span class="code-chip">D${i+1}: ${x}</span>`).join('')}</div>
- <div id="powerDevices" class="puzzle-grid cols${hard?4:3}"></div>
- <div class="quiz-actions"><span class="micro" id="powerHint">누를 때마다 두 장치가 함께 변합니다.</span><button id="powerReset" class="outline">초기화</button><button id="powerSubmit">설정 확인</button></div>`);
- const holder=$('#powerDevices'),buttons=[];
- function render(){buttons.forEach((b,i)=>{b.textContent='장치 '+(i+1)+'\\n현재 '+actual[i]+'단계';b.classList.toggle('selected',actual[i]===target[i])})}
- for(let i=0;i<count;i++){
-  const b=pButton('',()=>{rules[i].forEach(idx=>actual[idx]=(actual[idx]+1)%3);clicks[i]++;render()});
-  b.style.whiteSpace='pre-line';buttons.push(b);holder.appendChild(b);
- }
- render();
- $('#powerReset').onclick=()=>{actual.fill(0);clicks.fill(0);render()};
- $('#powerSubmit').onclick=()=>actual.every((n,i)=>n===target[i])?solvePuzzle():failPuzzle('일부 장치의 전력이 목표와 다릅니다. 연결된 두 장치를 함께 고려하세요.');
-};
+// 15 차단: 세 독립 장치의 0/1/2 전력 수준 맞춤.
+PUZZLE_BUILDERS.b3=p=>{let targets=Array.from({length:3},()=>rnd(0,2)),actual=[0,0,0];setPuzzleContent(`${targetHTML('목표 전력',targets.map(x=>x+'단계'))}<div class="quiz-instruction">각 장치의 버튼을 눌러 목표 전력과 같게 설정하세요. (0 → 1 → 2 → 0)</div><div id="powerDevices" class="puzzle-grid cols3"></div><div class="quiz-actions"><span class="micro">세 장치가 모두 같아야 합니다.</span><button id="powerSubmit">설정 확인</button></div>`);const holder=$('#powerDevices'),buttons=[];for(let i=0;i<3;i++){let b=pButton(`장치 ${i+1}\n현재 0단계`,()=>{actual[i]=(actual[i]+1)%3;b.textContent=`장치 ${i+1}\n현재 ${actual[i]}단계`;b.classList.toggle('selected',actual[i]===targets[i])});buttons.push(b);holder.appendChild(b)}$('#powerSubmit').onclick=()=>{if(actual.every((n,i)=>n===targets[i]))solvePuzzle();else failPuzzle('목표 전력과 현재 수치가 다른 장치가 있습니다.')}};
 // 16 차단: 실제로 이동하는 게이지를 안전 구역에서 멈춘다.
 PUZZLE_BUILDERS.b4=p=>{let total=game.diff==='easy'?2:3,hits=0,phase=rnd(0,100)/100,dir=1,safeLeft=game.diff==='easy'?36:42,safeRight=game.diff==='easy'?64:58;setPuzzleContent(`<div class="target-line"><span class="label">보안벽 통과</span><strong id="timingHits" style="color:var(--yellow)">0 / ${total}</strong></div><div class="quiz-instruction">신호 점이 노란 영역 안에 들어오는 순간 버튼을 누르세요.</div><div style="position:relative;height:52px;background:#132434;border:1px solid #365263;margin:20px 3px"><div style="position:absolute;top:0;bottom:0;left:${safeLeft}%;width:${safeRight-safeLeft}%;background:rgba(234,255,0,.18);border-left:2px solid var(--yellow);border-right:2px solid var(--yellow)"></div><div id="timingDot" style="position:absolute;top:0;bottom:0;width:5px;background:var(--cyan);box-shadow:0 0 14px var(--cyan);left:5%"></div></div><div class="quiz-actions"><span class="micro">현재 위치 <strong id="timingPosition">0%</strong></span><button id="timingPress">안전 구간 통과</button></div>`);recurring(()=>{phase+=dir*(72/(game.diff==='easy'?puzzleTune('b4').cycleEasy:puzzleTune('b4').cycleHard));if(phase>=1){phase=1;dir=-1}else if(phase<=0){phase=0;dir=1}let x=phase*100;$('#timingDot')?.style.setProperty('left',x+'%');if($('#timingPosition'))$('#timingPosition').textContent=Math.round(x)+'%'},36);$('#timingPress').onclick=()=>{let current=phase*100;if(current<safeLeft||current>safeRight){failPuzzle('안전 영역에 신호가 있을 때 통과해야 합니다.');return}hits++;$('#timingHits').textContent=hits+' / '+total;if(hits>=total)solvePuzzle();else setFeedback(`안전 통과 성공! ${total-hits}번 남았습니다.`)}};
 // 17 중앙 서버 전용: 유일하게 XOR 연산을 사용하는 4비트 최종 퍼즐.
