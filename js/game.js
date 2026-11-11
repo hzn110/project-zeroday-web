@@ -105,11 +105,45 @@ function sound(name='click') {if(!settings.sound||settings.volume<=0)return;try{
 document.addEventListener('pointerdown',e=>{if(e.target.closest('button'))sound('click')});
 function toast(message,warn=false){let t=$('#toast');t.textContent=message;t.className='toast visible'+(warn?' warn':'');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('visible'),2400)}
 function go(id){if(id==='developer'&&!devAuthenticated)id='menu';screen=id;$$('.screen').forEach(e=>e.classList.toggle('active',e.id===id));window.scrollTo(0,0);if(id==='ranking')renderRanking();if(id==='game')updateHud();}
-function openOverlay(eyebrow,title,body,footer='',mode='intel'){overlayMode=mode;$('#overlay').dataset.mode=mode;$('#overlayEyebrow').textContent=eyebrow;$('#overlayTitle').textContent=title;$('#overlayBody').innerHTML=body;$('#overlayFooter').innerHTML=footer;$('#overlay').classList.remove('hidden');$('#overlayClose').textContent=mode==='core'?'Ⅱ 잠시 멈춤':'✕ 닫기';}
+function openOverlay(eyebrow,title,body,footer='',mode='intel'){overlayMode=mode;$('#overlay').dataset.mode=mode;$('#overlayEyebrow').textContent=eyebrow;$('#overlayTitle').textContent=title;$('#overlayBody').innerHTML=body;$('#overlayFooter').innerHTML=footer;$('#overlay').classList.remove('hidden');$('#overlayClose').textContent=mode==='core'?'☰ 메뉴':'✕ 닫기';}
 function closeOverlay(){clearPuzzleTimers();$('#overlay').classList.add('hidden');overlayMode='';puzzle=null;}
 function clearPuzzleTimers(){activeTimers.forEach(timer=>{if(timer.kind==='i')clearInterval(timer.id);else clearTimeout(timer.id)});activeTimers=[]}
-function later(fn,ms){const timer={kind:'t',id:null,fn,remaining:ms,deadline:performance.now()+ms,suspended:guideOpen,run:null};timer.run=()=>{activeTimers=activeTimers.filter(x=>x!==timer);fn()};if(!guideOpen)timer.id=setTimeout(timer.run,ms);activeTimers.push(timer);return timer.id}
-function recurring(fn,ms){const timer={kind:'i',id:null};timer.id=setInterval(()=>{if(!guideOpen)fn()},ms);activeTimers.push(timer);return timer.id}
+function puzzleTimersBlocked(){return guideOpen||!!game?.paused}
+function suspendPuzzleTimers(){
+ const now=performance.now();
+ activeTimers.forEach(timer=>{
+  if(timer.kind==='t'&&!timer.suspended){
+   clearTimeout(timer.id);
+   timer.remaining=Math.max(0,timer.deadline-now);
+   timer.suspended=true;
+  }
+ });
+}
+function resumePuzzleTimers(){
+ if(puzzleTimersBlocked())return;
+ const now=performance.now();
+ activeTimers.forEach(timer=>{
+  if(timer.kind==='t'&&timer.suspended){
+   timer.deadline=now+timer.remaining;
+   timer.id=setTimeout(timer.run,timer.remaining);
+   timer.suspended=false;
+  }
+ });
+}
+function later(fn,ms){
+ const blocked=puzzleTimersBlocked();
+ const timer={kind:'t',id:null,fn,remaining:ms,deadline:performance.now()+ms,suspended:blocked,run:null};
+ timer.run=()=>{activeTimers=activeTimers.filter(x=>x!==timer);fn()};
+ if(!blocked)timer.id=setTimeout(timer.run,ms);
+ activeTimers.push(timer);
+ return timer.id;
+}
+function recurring(fn,ms){
+ const timer={kind:'i',id:null};
+ timer.id=setInterval(()=>{if(!puzzleTimersBlocked())fn()},ms);
+ activeTimers.push(timer);
+ return timer.id;
+}
 let guideOpen=false, guideRestoreFocus=null;
 function openNodeGuide(){
  if(guideOpen)return;
@@ -119,8 +153,7 @@ function openNodeGuide(){
  $('#nodeGuideCards').innerHTML=nodeGuideCards();
  dlg.classList.remove('hidden');
  document.body.classList.add('node-guide-open');
- const now=performance.now();
- activeTimers.forEach(timer=>{if(timer.kind==='t'&&!timer.suspended){clearTimeout(timer.id);timer.remaining=Math.max(0,timer.deadline-now);timer.suspended=true}});
+ suspendPuzzleTimers();
  $('#nodeGuideClose').focus();
 }
 function closeNodeGuide(){
@@ -128,8 +161,7 @@ function closeNodeGuide(){
  guideOpen=false;
  $('#nodeGuideDialog').classList.add('hidden');
  document.body.classList.remove('node-guide-open');
- const now=performance.now();
- activeTimers.forEach(timer=>{if(timer.kind==='t'&&timer.suspended){timer.deadline=now+timer.remaining;timer.id=setTimeout(timer.run,timer.remaining);timer.suspended=false}});
+ resumePuzzleTimers();
  frameTime=performance.now();
  if(guideRestoreFocus&&guideRestoreFocus.isConnected)guideRestoreFocus.focus();
  guideRestoreFocus=null;
@@ -511,8 +543,38 @@ function returnToMain(){
  syncSettings();
  go('menu');
 }
-$$('[data-home]').forEach(b=>b.onclick=returnToMain);
-$('#settingsBack').onclick=()=>{syncSettings();go(previousScreen)};$('#saveSettings').onclick=()=>{settings.sound=$('#setSound').checked;settings.volume=Number($('#setVolume').value);settings.parallax=$('#setParallax').checked;settings.motion=$('#setMotion').checked;settings.largeText=$('#setLargeText').checked;settings.theme=pendingTheme;settings.visibility=pendingVisibility;store(SETTINGS,settings);syncSettings();toast('설정이 저장되었습니다.');go(previousScreen)};
+$('[data-home]').forEach(b=>b.onclick=returnToMain);
+function returnFromSettings(){
+ if(previousScreen==='game'&&game?.paused&&pauseActive){
+  go('game');
+  const overlay=$('#overlay');
+  if(overlay.dataset.pauseHidden==='true'){
+   overlay.classList.remove('hidden');
+   delete overlay.dataset.pauseHidden;
+  }
+  const shade=$('#pauseShade');
+  if(shade){shade.classList.remove('hidden');$('#pauseResume').focus()}
+ }else{
+  go(previousScreen);
+ }
+}
+$('#settingsBack').onclick=()=>{syncSettings();returnFromSettings()};
+$('#saveSettings').onclick=()=>{
+ settings.sound=$('#setSound').checked;
+ settings.volume=Number($('#setVolume').value);
+ settings.parallax=$('#setParallax').checked;
+ settings.motion=$('#setMotion').checked;
+ settings.largeText=$('#setLargeText').checked;
+ settings.theme=pendingTheme;
+ settings.visibility=pendingVisibility;
+ store(SETTINGS,settings);
+ syncSettings();
+ toast('설정이 저장되었습니다.');
+ returnFromSettings();
+};
+$('#settings').addEventListener('keydown',e=>{
+ if(e.key==='Escape'&&previousScreen==='game'&&game?.paused){e.preventDefault();syncSettings();returnFromSettings()}
+});
 $('#setVolume').oninput=()=>$('#volumeText').textContent=$('#setVolume').value+'%';
 function updateClock(){const t=new Date();$('#menuClock').textContent=[t.getHours(),t.getMinutes(),t.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':')}updateClock();setInterval(updateClock,1000);
 const zone=$('#parallaxZone');let paraX=0,paraY=0,paraRaf=0;zone.addEventListener('pointermove',e=>{if(!settings.parallax||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;const r=zone.getBoundingClientRect();paraX=((e.clientX-r.left)/r.width-.5)*2;paraY=((e.clientY-r.top)/r.height-.5)*2;if(!paraRaf)paraRaf=requestAnimationFrame(moveParallax)});zone.addEventListener('pointerleave',()=>{paraX=0;paraY=0;if(!paraRaf)paraRaf=requestAnimationFrame(moveParallax)});function moveParallax(){paraRaf=0;$$('#parallaxZone .depth').forEach(el=>{const layer=el.classList.contains('v5-back-depth')?.65:el.classList.contains('v5-mid-depth')?1.0:1.42;const base=window.innerWidth<700?8.5:16;const tx=(paraX*base*layer).toFixed(1);const ty=(paraY*(base*.78)*layer).toFixed(1);const scale=(1+layer*0.012).toFixed(3);el.style.transform=`translate3d(${tx}px,${ty}px,0) scale(${scale})`})}
@@ -942,7 +1004,97 @@ function normalizeNickname(value){return String(value??'').trim()}
 function registerNickname(){if(devGameplay){toast('DEV SANDBOX 기록은 랭킹에 저장되지 않습니다.',true);return}if(!game||game.phase!=='won'||game.saved||!game.pendingRecord)return;let nickname=normalizeNickname($('#nicknameInput').value);let feedback=$('#nicknameFeedback');if(!nickname){feedback.className='nickname-feedback bad';feedback.textContent='닉네임을 입력하세요.';$('#nicknameInput').focus();return}if(nickname.length>12||!/^[가-힣A-Za-z0-9_.-]+$/.test(nickname)){feedback.className='nickname-feedback bad';feedback.textContent='한글·영문·숫자·_ . - 만 사용해 12자 이내로 입력하세요.';$('#nicknameInput').focus();return}let records=read(STORAGE,[]);if(!Array.isArray(records))records=[];records.push({...game.pendingRecord,nickname});store(STORAGE,records.slice(-150));game.nickname=nickname;game.saved=true;feedback.className='nickname-feedback good';feedback.textContent=`REGISTERED // ${nickname} 이름으로 랭킹 기록이 저장되었습니다.`;$('#nicknameInput').disabled=true;$('#nicknameSave').disabled=true;$('#nicknameSave').textContent='등록 완료 ✓';sound('ok')}
 $('#nicknameSave').onclick=registerNickname;
 $('#nicknameInput').addEventListener('keydown',e=>{if(e.key==='Enter')registerNickname()});
-function openPause(){if(!game||game.paused||!['map','core'].includes(game.phase))return;game.paused=true;pauseActive=true;let shade=document.createElement('div');shade.className='overlay';shade.id='pauseShade';shade.style.zIndex='1200';shade.innerHTML=`<div class="panel" style="width:min(470px,92vw);padding:30px;text-align:center"><div class="section-brow">작전 일시정지</div><h2 style="margin:12px 0">잠시 정지했습니다</h2><p class="subtle" style="margin:14px 0 24px">이 화면에서는 시간과 추적도가 증가하지 않습니다.</p><div class="action-row center-actions"><button id="pauseResume" class="bright">작전 재개 ▶</button><button id="pauseExit" class="outline danger">메인으로 종료</button></div></div>`;document.body.appendChild(shade);$('#pauseResume').onclick=()=>{game.paused=false;pauseActive=false;shade.remove();frameTime=performance.now()};$('#pauseExit').onclick=()=>{returnToMain()}}
+function openPause(){
+ if(screen!=='game'||!game||game.paused||!['map','core'].includes(game.phase))return;
+ game.paused=true;
+ pauseActive=true;
+ suspendPuzzleTimers();
+ const shade=document.createElement('div');
+ shade.className='overlay game-pause-overlay';
+ shade.id='pauseShade';
+ shade.setAttribute('role','dialog');
+ shade.setAttribute('aria-modal','true');
+ shade.setAttribute('aria-labelledby','pauseMenuTitle');
+ shade.innerHTML=`<div class="game-pause-shell">
+  <div class="game-pause-heading">
+   <div class="section-brow">SESSION / SYSTEM MENU</div>
+   <h2 id="pauseMenuTitle">게임 메뉴</h2>
+   <p>작전이 일시정지되었습니다.<br>메뉴를 닫기 전까지 시간과 추적도는 증가하지 않습니다.</p>
+  </div>
+  <div id="pauseOptions" class="game-pause-options">
+   <button type="button" id="pauseResume" class="game-pause-option primary">
+    <span class="game-pause-icon" aria-hidden="true">▶</span><span><b>계속하기</b><small>현재 작전으로 돌아갑니다</small></span><span class="game-pause-chevron" aria-hidden="true">›</span>
+   </button>
+   <button type="button" id="pauseSettings" class="game-pause-option">
+    <span class="game-pause-icon" aria-hidden="true">⚙</span><span><b>설정</b><small>화면 · 효과음 · 가시성 변경</small></span><span class="game-pause-chevron" aria-hidden="true">›</span>
+   </button>
+   <button type="button" id="pauseExit" class="game-pause-option danger">
+    <span class="game-pause-icon" aria-hidden="true">✕</span><span><b>종료</b><small>진행 중인 작전을 종료합니다</small></span><span class="game-pause-chevron" aria-hidden="true">›</span>
+   </button>
+  </div>
+  <div id="pauseExitPrompt" class="game-pause-confirm hidden" role="group" aria-label="작전 종료 확인">
+   <strong>작전을 종료할까요?</strong>
+   <p>진행 중인 작전은 저장되지 않으며 메인 메뉴로 돌아갑니다.</p>
+   <div class="game-pause-confirm-actions">
+    <button type="button" id="pauseExitCancel" class="outline">취소</button>
+    <button type="button" id="pauseExitConfirm" class="outline danger">종료하기</button>
+   </div>
+  </div>
+  <div class="game-pause-footer">PROJECT: ZERO-DAY // SESSION PAUSED</div>
+ </div>`;
+ document.body.appendChild(shade);
+ const resume=()=>{
+  if(!game)return;
+  game.paused=false;
+  pauseActive=false;
+  resumePuzzleTimers();
+  shade.remove();
+  frameTime=performance.now();
+  $('#pauseBtn').focus();
+ };
+ const cancelExit=()=>{
+  $('#pauseExitPrompt').classList.add('hidden');
+  $('#pauseOptions').classList.remove('hidden');
+  $('#pauseExit').focus();
+ };
+ $('#pauseResume').onclick=resume;
+ $('#pauseSettings').onclick=()=>{
+  previousScreen='game';
+  syncSettings();
+  const overlay=$('#overlay');
+  if(!overlay.classList.contains('hidden')){
+   overlay.dataset.pauseHidden='true';
+   overlay.classList.add('hidden');
+  }
+  shade.classList.add('hidden');
+  go('settings');
+  $('#settingsBack').focus();
+ };
+ $('#pauseExit').onclick=()=>{
+  $('#pauseOptions').classList.add('hidden');
+  $('#pauseExitPrompt').classList.remove('hidden');
+  $('#pauseExitCancel').focus();
+ };
+ $('#pauseExitCancel').onclick=cancelExit;
+ $('#pauseExitConfirm').onclick=()=>{
+  if(devGameplay&&devAuthenticated)devReturnConsole();
+  else returnToMain();
+ };
+ shade.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+   e.preventDefault();
+   if(!$('#pauseExitPrompt').classList.contains('hidden'))cancelExit();
+   else resume();
+  }else if(e.key==='Tab'){
+   const controls=[...shade.querySelectorAll('button')].filter(b=>!b.disabled&&b.offsetParent!==null);
+   if(!controls.length)return;
+   const first=controls[0],last=controls[controls.length-1];
+   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+  }
+ });
+ $('#pauseResume').focus();
+}
 $('#pauseBtn').onclick=openPause;$('#overlayClose').onclick=()=>{if(devTest){closeDevPuzzle()}else if(overlayMode==='intel'||overlayMode==='puzzle'){closeOverlay()}else if(overlayMode==='core')openPause()};$('#resultRetry').onclick=()=>go('difficulty');$('#resultRank').onclick=()=>{if(game?.phase==='won'&&!game.saved){$('#nicknameFeedback').className='nickname-feedback bad';$('#nicknameFeedback').textContent='현재 클리어 기록을 랭킹에 남기려면 먼저 닉네임을 등록하세요.';$('#nicknameInput').focus();return}rankDiff=game?.diff||'easy';renderRanking();go('ranking')};
 function parseRankNumber(value,percent=false){
  if(typeof value!=='number'&&typeof value!=='string')return null;
