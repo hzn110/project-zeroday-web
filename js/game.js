@@ -1267,8 +1267,9 @@ PUZZLE_BUILDERS.d3=p=>{
  const hard=game.diff==='hard';
  const labels=hard?['AUTH','PACKET','ROUTE','CHECK','COMMIT']:['START','DATA','VERIFY','END'];
  const countTotal=labels.length;
- // Hard mode uses packet dependency fields rather than visible sequential packet IDs.
- const chain=labels.map((label,i)=>({label,id:hard?('0x'+(0xA1+i*23).toString(16).toUpperCase()):String(i+1).padStart(2,'0'),prev:i?null:'ENTRY',next:i===countTotal-1?'EXIT':null}));
+ // Keep the original straightforward chain logic, but vary packet identifiers each play.
+ const idStart=rnd(0x80,0xBF),idStep=rnd(7,31);
+ const chain=labels.map((label,i)=>({label,id:hard?('0x'+(idStart+i*idStep).toString(16).toUpperCase()):String(i+1).padStart(2,'0'),prev:i?null:'ENTRY',next:i===countTotal-1?'EXIT':null}));
  for(let i=1;i<countTotal;i++)chain[i].prev=chain[i-1].id;
  for(let i=0;i<countTotal-1;i++)chain[i].next=chain[i+1].id;
  let pos=0,chosen=new Set(),current='ENTRY';
