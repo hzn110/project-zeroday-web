@@ -22,7 +22,9 @@ function cleanEntry(raw,id){
  const score=Number(raw.score),time=Number(raw.time),trace=Number(raw.trace);
  if(!Number.isFinite(score)||score<0||score>10000000||!Number.isFinite(time)||time<0||time>3600||!Number.isFinite(trace)||trace<0||trace>100)return null;
  if(!['S','A','B','C'].includes(raw.grade))return null;
- return {id:String(id),nickname,diff:raw.diff,score:Math.round(score),time:Math.round(time*100)/100,trace:Math.round(trace*10)/10,grade:raw.grade,date:String(raw.date||'—').slice(0,32)};
+ const entry={id:String(id),nickname,diff:raw.diff,score:Math.round(score),time:Math.round(time*100)/100,trace:Math.round(trace*10)/10,grade:raw.grade,date:String(raw.date||'—').slice(0,32)};
+ if(Number.isFinite(raw.createdAt))entry.createdAt=raw.createdAt;
+ return entry;
 }
 function sanitizeForUpload(raw){
  const entry=cleanEntry(raw,raw?.id);
@@ -68,7 +70,7 @@ async function start(){
   for(const diff of ['easy','hard']){
    dataApi.onValue(dataApi.ref(db,'rankings/v1/'+diff),snap=>{
     const raw=snap.val()||{};
-    state.entries[diff]=Object.entries(raw).map(([id,entry])=>cleanEntry(entry,id)).filter(Boolean);
+    state.entries[diff]=Object.entries(raw).map(([id,entry])=>cleanEntry(entry,id)).filter(Boolean).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
     loaded[diff]=true;
     emit();
     updateStatus();
