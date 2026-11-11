@@ -1,7 +1,7 @@
 'use strict';
 const {chromium}=require('playwright'),fs=require('fs');
 const checks=[],failures=[];
-const SITE='https://hzn110.github.io/project-zeroday-web/?exhibition_qa=4.26.3';
+const SITE='https://hzn110.github.io/project-zeroday-web/?exhibition_qa=4.26.4';
 let browser;
 function ok(a,m){if(!a)throw Error(m)}
 async function check(name,fn){try{const detail=await fn();checks.push({name,status:'PASS',detail:detail??''});console.log('PASS',name,detail??'')}catch(e){const err=String(e.stack||e);failures.push({name,error:err});checks.push({name,status:'FAIL',error:String(e.message||e)});console.error('FAIL',name,err)}}
@@ -15,11 +15,11 @@ async function run(){
   for(let i=0;i<5;i++){
    response=await publicPage.goto(SITE+'&attempt='+i,{waitUntil:'domcontentloaded',timeout:60000});
    src=await publicPage.locator('script[src*="game.js"]').getAttribute('src');
-   if(src&&src.includes('4.26.3'))break;
+   if(src&&src.includes('4.26.4'))break;
    await publicPage.waitForTimeout(10000);
   }
   ok(response?.status()===200,'HTTP '+response?.status());
-  ok(src&&src.includes('4.26.3'),'stale public script '+src);
+  ok(src&&src.includes('4.26.4'),'stale public script '+src);
   await publicPage.waitForFunction(()=>typeof window.ZERO_DAY_STATUS==='function',null,{timeout:15000});
   ok(publicErrors.length===0,publicErrors.join('; '));
   return src;
@@ -28,7 +28,7 @@ async function run(){
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/js/game.js*',async route=>{
   const response=await route.fetch(),original=await response.text();
-  console.log('LIVE_SOURCE_PROBE',JSON.stringify({bytes:original.length,forcedCue:original.includes("tile.style.setProperty('background-color','#ff8c70','important')"),expectedVersion:'4.26.3'}));
+  console.log('LIVE_SOURCE_PROBE',JSON.stringify({bytes:original.length,forcedCue:original.includes("tile.style.setProperty('background-color','#ff8c70','important')"),expectedVersion:'4.26.4'}));
   const altered=original.replace(/\}\)\(\);\s*$/,";window.__EX_QA={\n open:(key,mode='easy')=>{clearPuzzleTimers();if(puzzle)closeOverlay();const m=PUZZLES[key];if(!m)throw Error('Unknown '+key);const n={id:'QA_'+key,codename:'QA',type:m.type,key,cleared:false,x:0,y:0};game=makeDevGame(n);game.diff=mode;game.paused=false;devTest=true;devTestKey=key;displayPuzzle(key,n,false);return puzzle.key},\n state:()=>({key:puzzle?.key,solved:puzzle?.solved,phase:game?.phase,mode:game?.diff,trace:game?.trace}),\n pass:()=>solvePuzzle(),\n start:mode=>{clearPuzzleTimers();if(puzzle)closeOverlay();devTest=false;game=null;puzzle=null;diff=mode;startGame();return window.ZERO_DAY_STATUS()},\n toCore:()=>{game.cleared=4;game.lastNodeId='entry';game.edges.push({a:'entry',b:'core'});renderMap();updateHud();openCoreIntel()},\n coreBits:()=>game?.coreBits,\n win:mode=>{clearPuzzleTimers();if(puzzle)closeOverlay();devTest=false;devGameplay=false;game=makeDevGame({id:'QA',type:'normal'});game.diff=mode;game.paused=false;game.duration=mode==='hard'?180:300;game.remaining=80;game.phase='map';endGame(true)},\n rankings:()=>read(STORAGE,[]),\n threshold:()=>MIN_CORE_NODES\n};"+'})();');
   ok(altered!==original,'QA instrument hook not attached');
   await route.fulfill({response,body:altered});
@@ -66,23 +66,48 @@ async function run(){
   ok((await page.locator('#memoryProgress').innerText()).includes('/ 5'),'expected five cues');
  });
  for(const mode of ['easy','hard']){
-  await check('Defense paths briefly show then conceal solution '+mode,async()=>{
+  await check('Restored defense paths are clearly marked and solvable '+mode,async()=>{
    await page.evaluate(m=>window.__EX_QA.open('b2',m),mode);
-   ok((await page.locator('#safePaths').innerText()).includes('안전'),'preview not shown');
-   await page.waitForFunction(()=>document.querySelector('#safeNotice')?.textContent.includes('스캔 종료'),null,{timeout:4500});
-   ok(!(await page.locator('#safePaths').innerText()).includes('안전'),'answer still shown after preview');
+   const total=mode==='easy'?3:5;
+   for(let round=0;round<total;round++){
+    await page.locator('#safePaths button.path-safe').waitFor({timeout:3000});
+    const safe=page.locator('#safePaths button.path-safe');
+    ok((await safe.count())===1,'one safe path required');
+    await safe.click();
+   }
+   ok((await page.evaluate(()=>window.__EX_QA.state())).solved,'defense path failed');
   });
-  await check('Data fragment checksum can be fully solved '+mode,async()=>{
+  await check('Restored sequential fragment puzzle can be solved '+mode,async()=>{
    await page.evaluate(m=>window.__EX_QA.open('d3',m),mode);
    const total=mode==='easy'?4:5;
-   for(let id=1;id<=total;id++){
-    const btn=page.locator('#fragmentGrid button').filter({hasText:'PACKET '+String(id).padStart(2,'0')});
-    const match=(await btn.innerText()).match(/A:(\d+)\s+B:(\d+)\s+KEY:(\d+)/);
-    ok(match,'malformed packet');
-    const checksum=(+match[1]*3+ +match[2]*2+ +match[3])%10;
-    await btn.click();await page.locator('#fragmentDigits button').filter({hasText:new RegExp('^'+checksum+'$')}).click();
+   let current='ENTRY';
+   for(let i=1;i<=total;i++){
+    const buttons=await page.locator('#fragmentGrid button').all();
+    let matched=null;
+    for(const btn of buttons){
+     const label=await btn.innerText();
+     if(mode==='easy' ? label.startsWith(String(i).padStart(2,'0')) : label.includes('PREV '+current)){
+      matched=btn;
+      if(mode==='hard'){const id=label.match(/ID (0x[0-9A-F]+)/);ok(id,'fragment ID missing');current=id[1]}
+      break;
+     }
+    }
+    ok(matched,'expected fragment missing at step '+i+' after '+current);
+    await matched.click();
    }
-   ok((await page.evaluate(()=>window.__EX_QA.state())).solved,'correct packets did not solve');
+   ok((await page.evaluate(()=>window.__EX_QA.state())).solved,'fragment restore failed');
+  });
+  await check('Restored independent power devices can be solved '+mode,async()=>{
+   await page.evaluate(m=>window.__EX_QA.open('b3',m),mode);
+   const chips=await page.locator('#puzzleMount .target-line .code-chip').allInnerTexts();
+   ok(chips.length===3,'three independent devices required');
+   for(let i=0;i<3;i++){
+    const goal=Number(chips[i].match(/(\d+)/)?.[1]);
+    ok(Number.isInteger(goal)&&goal>=0&&goal<=2,'invalid goal');
+    for(let n=0;n<goal;n++)await page.locator('#powerDevices button').nth(i).click();
+   }
+   await page.locator('#powerSubmit').click();
+   ok((await page.evaluate(()=>window.__EX_QA.state())).solved,'power devices did not solve');
   });
  }
  await check('Security log problem values vary between runs',async()=>{
