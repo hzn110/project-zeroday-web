@@ -543,7 +543,7 @@ function returnToMain(){
  syncSettings();
  go('menu');
 }
-$('[data-home]').forEach(b=>b.onclick=returnToMain);
+$$('[data-home]').forEach(b=>b.onclick=returnToMain);
 function returnFromSettings(){
  if(previousScreen==='game'&&game?.paused&&pauseActive){
   go('game');
