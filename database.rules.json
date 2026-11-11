@@ -1,0 +1,45 @@
+{
+  "rules": {
+    "rankings": {
+      "v1": {
+        "$difficulty": {
+          ".read": "$difficulty === 'easy' || $difficulty === 'hard'",
+          "$recordId": {
+            ".write": "auth != null && !data.exists() && ($difficulty === 'easy' || $difficulty === 'hard')",
+            ".validate": "newData.hasChildren(['id', 'nickname', 'diff', 'score', 'time', 'trace', 'grade', 'date', 'createdAt']) && newData.child('id').val() === $recordId && newData.child('diff').val() === $difficulty",
+            "id": {
+              ".validate": "newData.isString() && newData.val().matches(/^r[a-zA-Z0-9_-]{20,79}$/)"
+            },
+            "nickname": {
+              ".validate": "newData.isString() && newData.val().matches(/^[가-힣A-Za-z0-9_.-]{1,12}$/)"
+            },
+            "diff": {
+              ".validate": "newData.isString() && newData.val() === $difficulty"
+            },
+            "score": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000000"
+            },
+            "time": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600"
+            },
+            "trace": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+            },
+            "grade": {
+              ".validate": "newData.isString() && (newData.val() === 'S' || newData.val() === 'A' || newData.val() === 'B' || newData.val() === 'C')"
+            },
+            "date": {
+              ".validate": "newData.isString() && newData.val().length <= 32 && newData.val().length > 0"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber() && newData.val() >= now - 120000 && newData.val() <= now + 10000"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    }
+  }
+}
