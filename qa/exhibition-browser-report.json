@@ -1,12 +1,12 @@
 {
-  "testedAt": "2026-11-11T03:45:17.992Z",
-  "site": "https://hzn110.github.io/project-zeroday-web/?exhibition_qa=4.26.5",
+  "testedAt": "2026-11-11T23:37:26.747Z",
+  "site": "https://hzn110.github.io/project-zeroday-web/?exhibition_qa=4.27.0",
   "engine": "Chromium / Playwright",
   "checks": [
     {
       "name": "Live GitHub Pages is deployed, starts without JavaScript errors",
       "status": "PASS",
-      "detail": "js/game.js?v=4.26.5"
+      "detail": "js/game.js?v=4.27.0"
     },
     {
       "name": "Chromium QA browser loads current game",
@@ -239,13 +239,33 @@
       "detail": ""
     },
     {
+      "name": "Cloud adapter is loaded and unconfigured state falls back to local rankings",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Online event switches rankings to server-wide data",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Hard phone number never enters server upload payload",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Offline event restores local rankings",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
       "name": "No runtime JavaScript exceptions during QA",
       "status": "PASS",
       "detail": ""
     }
   ],
   "failures": [],
-  "passed": 48,
-  "total": 48,
+  "passed": 52,
+  "total": 52,
   "verdict": "PASS"
 }
