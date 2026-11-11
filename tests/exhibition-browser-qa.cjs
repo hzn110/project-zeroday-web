@@ -70,6 +70,7 @@ async function run(){
    await page.evaluate(m=>window.__EX_QA.open('b2',m),mode);
    const total=mode==='easy'?3:5;
    for(let round=0;round<total;round++){
+    await page.waitForFunction(n=>document.querySelector('#safeProgress')?.textContent.trim().startsWith(String(n)),round+1,{timeout:4000});
     await page.locator('#safePaths button.path-safe').waitFor({timeout:3000});
     const safe=page.locator('#safePaths button.path-safe');
     ok((await safe.count())===1,'one safe path required');
