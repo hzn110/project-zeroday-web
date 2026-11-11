@@ -1377,12 +1377,20 @@ PUZZLE_BUILDERS.b1=p=>{
   }
   const tile=bs[path[step]];
   tile.classList.add('is-cued');
+  // Force the highlight at the element level: a missing or stale stylesheet must not hide the signal.
+  tile.style.setProperty('background-color','#ff8c70','important');
+  tile.style.setProperty('color','#071019','important');
+  tile.style.setProperty('border-color','#fff1b5','important');
+  tile.style.setProperty('border-width','4px','important');
+  tile.style.setProperty('box-shadow','0 0 0 4px #ff6049,0 0 32px 8px rgba(255,112,82,.95),inset 0 0 20px #fff0cd','important');
+  tile.style.setProperty('transform','scale(1.075)','important');
   tile.setAttribute('aria-label',symbols[path[step]]+' 위치 점등 중');
   message.textContent=(step+1)+'번째 신호 점등 중 — 밝은 코랄색 칸의 위치를 기억하세요.';
   state.textContent='SIGNAL '+(step+1)+' / '+path.length;
   memoryLater(()=>{
    if(!alive(id))return;
    tile.classList.remove('is-cued');
+   ['background-color','color','border-color','border-width','box-shadow','transform'].forEach(prop=>tile.style.removeProperty(prop));
    tile.setAttribute('aria-label',symbols[path[step]]+' 위치 선택');
    memoryLater(()=>flashNext(step+1,id),gapMs);
   },cueMs);
@@ -1401,7 +1409,10 @@ PUZZLE_BUILDERS.b1=p=>{
   stopMemoryTimers();
   ready=false;
   pos=0;
-  bs.forEach(tile=>tile.classList.remove('is-cued','is-correct','is-wrong'));
+  bs.forEach(tile=>{
+   tile.classList.remove('is-cued','is-correct','is-wrong');
+   ['background-color','color','border-color','border-width','box-shadow','transform'].forEach(prop=>tile.style.removeProperty(prop));
+  });
   progress.textContent=Array(path.length).fill('●').join(' ');
   state.textContent=replay?'SLOW REPLAY / -'+balance.replayCost+' PT':'SEQUENCE PLAYBACK';
   message.textContent=replay?'느린 속도로 다시 점등합니다. 코랄색 테두리가 켜지는 위치를 기억하세요.':'빠른 속도로 점등합니다. 코랄색 테두리가 켜지는 위치를 기억하세요.';
