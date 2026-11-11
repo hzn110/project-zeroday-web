@@ -1,0 +1,54 @@
+name: Exhibition Chromium QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/exhibition-browser-qa.cjs'
+      - '.github/workflows/exhibition-browser-qa.yml'
+      - 'js/game.js'
+      - 'css/styles.css'
+      - 'index.html'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  browser:
+    name: Browser smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test dependencies
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run real browser checks against GitHub Pages
+        shell: bash
+        run: |
+          set +e
+          node tests/exhibition-browser-qa.cjs
+          status=$?
+          mkdir -p qa
+          echo "$status" > qa/exhibition-test-exit.txt
+          exit 0
+      - name: Publish public QA report
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -f qa/exhibition-browser-report.json ]; then
+            mkdir -p qa
+            echo '{"verdict":"FAIL","reason":"QA runner failed before generating a report"}' > qa/exhibition-browser-report.json
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add qa/exhibition-browser-report.json qa/exhibition-test-exit.txt
+          git commit -m 'qa: publish latest live Chromium exhibition test report' || true
+          git push origin HEAD:main
+      - name: Enforce smoke-test result
+        if: always()
+        shell: bash
+        run: |
+          test "$(cat qa/exhibition-test-exit.txt)" = 0
