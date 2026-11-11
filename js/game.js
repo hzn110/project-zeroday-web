@@ -1375,7 +1375,7 @@ PUZZLE_BUILDERS.b1=p=>{
    memoryLater(()=>flashNext(step+1,id),gapMs);
   },cueMs);
  }
- startBtn.onclick=()=>{
+ function playMemoryPattern(){
   if(!game||puzzle!==p||p.solved||!['map','core'].includes(game.phase))return;
   const replay=plays>0;
   if(replay){
@@ -1396,9 +1396,10 @@ PUZZLE_BUILDERS.b1=p=>{
   startBtn.disabled=true;
   startBtn.textContent='점등 중...';
   memoryLater(()=>flashNext(0,id),replay?400:250);
- };
+ }
+ startBtn.onclick=playMemoryPattern;
  // Start automatically after the puzzle grid has been inserted into the DOM.
- memoryLater(()=>{if(puzzle===p&&!p.solved)startBtn.click()},300);
+ memoryLater(()=>{if(puzzle===p&&!p.solved)playMemoryPattern()},300);
 };
 // 14 차단: 매 라운드 안전 통로 판별.
 PUZZLE_BUILDERS.b2=p=>{
