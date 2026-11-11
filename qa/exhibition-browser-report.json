@@ -1,5 +1,5 @@
 {
-  "testedAt": "2026-11-11T03:42:05.009Z",
+  "testedAt": "2026-11-11T03:43:11.488Z",
   "site": "https://hzn110.github.io/project-zeroday-web/?exhibition_qa=4.26.4",
   "engine": "Chromium / Playwright",
   "checks": [
@@ -230,8 +230,8 @@
     },
     {
       "name": "Hard ranking optional contact stored but not publicly displayed",
-      "status": "PASS",
-      "detail": ""
+      "status": "FAIL",
+      "error": "phone not stored {\"feedback\":\"REGISTERED // QA_HARD010-1 이름으로 랭킹 기록이 저장되었습니다.\",\"entries\":[{\"diff\":\"hard\",\"score\":3060,\"time\":100,\"trace\":0,\"grade\":\"S\",\"date\":\"2026. 11. 11.\",\"nickname\":\"QA_HARD010-1\"}]}"
     },
     {
       "name": "Easy ranking saves without requesting contact",
@@ -244,8 +244,13 @@
       "detail": ""
     }
   ],
-  "failures": [],
-  "passed": 48,
+  "failures": [
+    {
+      "name": "Hard ranking optional contact stored but not publicly displayed",
+      "error": "Error: phone not stored {\"feedback\":\"REGISTERED // QA_HARD010-1 이름으로 랭킹 기록이 저장되었습니다.\",\"entries\":[{\"diff\":\"hard\",\"score\":3060,\"time\":100,\"trace\":0,\"grade\":\"S\",\"date\":\"2026. 11. 11.\",\"nickname\":\"QA_HARD010-1\"}]}\n    at ok (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:6:30)\n    at /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:141:3\n    at async check (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:7:48)\n    at async run (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:134:2)\n    at async /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:153:16"
+    }
+  ],
+  "passed": 47,
   "total": 48,
-  "verdict": "PASS"
+  "verdict": "FAIL"
 }
