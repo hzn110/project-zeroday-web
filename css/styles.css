@@ -4796,3 +4796,8 @@ body[data-visibility="contrast"] .game-pause-option{background:#09131e;border-co
  .game-pause-option{padding:13px}
 }
 @media(prefers-reduced-motion:reduce){.game-pause-option:hover{transform:none}}
+
+
+.overlay-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex:0 0 auto}
+.overlay-head-actions .overlay-menu-trigger{flex-basis:44px;min-width:44px;height:42px;padding:4px}
+@media(max-width:540px){.overlay-head-actions{gap:5px}.overlay-head-actions .overlay-menu-trigger{flex-basis:40px;min-width:40px;height:40px}}
