@@ -1,0 +1,250 @@
+{
+  "testedAt": "2026-11-11T03:01:51.323Z",
+  "site": "https://hzn110.github.io/project-zeroday-web/?exhibition_qa=4.26.2",
+  "engine": "Chromium / Playwright",
+  "checks": [
+    {
+      "name": "Live GitHub Pages is deployed, starts without JavaScript errors",
+      "status": "PASS",
+      "detail": "js/game.js?v=4.26.2"
+    },
+    {
+      "name": "Chromium QA browser loads current game",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "n1 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "n2 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "n3 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "n4 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "d1 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "d2 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "d3 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "d4 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "s1 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "s2 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "s3 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "s4 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "b1 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "b2 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "b3 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "b4 easy initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "n1 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "n2 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "n3 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "n4 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "d1 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "d2 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "d3 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "d4 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "s1 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "s2 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "s3 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "s4 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "b1 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "b2 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "b3 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "b4 hard initializes cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Memory automatically illuminates then enables input (Easy)",
+      "status": "FAIL",
+      "error": "invisible cue"
+    },
+    {
+      "name": "Memory autoplays five cues in Hard",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Defense paths briefly show then conceal solution easy",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Data fragment checksum can be fully solved easy",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Defense paths briefly show then conceal solution hard",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Data fragment checksum can be fully solved hard",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Security log problem values vary between runs",
+      "status": "PASS",
+      "detail": 6
+    },
+    {
+      "name": "Easy and Hard game sessions start normally",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Four nodes enable five-stage core and winning result",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Hard ranking optional contact stored but not publicly displayed",
+      "status": "FAIL",
+      "error": "phone not stored"
+    },
+    {
+      "name": "Easy ranking saves without requesting contact",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "No runtime JavaScript exceptions during QA",
+      "status": "PASS",
+      "detail": ""
+    }
+  ],
+  "failures": [
+    {
+      "name": "Memory automatically illuminates then enables input (Easy)",
+      "error": "Error: invisible cue\n    at ok (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:6:30)\n    at /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:54:3\n    at async check (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:7:48)\n    at async run (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:50:2)\n    at async /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:121:16"
+    },
+    {
+      "name": "Hard ranking optional contact stored but not publicly displayed",
+      "error": "Error: phone not stored\n    at ok (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:6:30)\n    at /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:109:3\n    at async check (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:7:48)\n    at async run (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:104:2)\n    at async /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:121:16"
+    }
+  ],
+  "passed": 44,
+  "total": 46,
+  "verdict": "FAIL"
+}
