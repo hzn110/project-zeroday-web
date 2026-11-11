@@ -1,7 +1,7 @@
 'use strict';
 const {chromium}=require('playwright'),fs=require('fs');
 const checks=[],failures=[];
-const SITE='https://hzn110.github.io/project-zeroday-web/?exhibition_qa=4.26.1';
+const SITE='https://hzn110.github.io/project-zeroday-web/?exhibition_qa=4.26.2';
 let browser;
 function ok(a,m){if(!a)throw Error(m)}
 async function check(name,fn){try{const detail=await fn();checks.push({name,status:'PASS',detail:detail??''});console.log('PASS',name,detail??'')}catch(e){const err=String(e.stack||e);failures.push({name,error:err});checks.push({name,status:'FAIL',error:String(e.message||e)});console.error('FAIL',name,err)}}
@@ -15,11 +15,11 @@ async function run(){
   for(let i=0;i<5;i++){
    response=await publicPage.goto(SITE+'&attempt='+i,{waitUntil:'domcontentloaded',timeout:60000});
    src=await publicPage.locator('script[src*="game.js"]').getAttribute('src');
-   if(src&&src.includes('4.26.1'))break;
+   if(src&&src.includes('4.26.2'))break;
    await publicPage.waitForTimeout(10000);
   }
   ok(response?.status()===200,'HTTP '+response?.status());
-  ok(src&&src.includes('4.26.1'),'stale public script '+src);
+  ok(src&&src.includes('4.26.2'),'stale public script '+src);
   await publicPage.waitForFunction(()=>typeof window.ZERO_DAY_STATUS==='function',null,{timeout:15000});
   ok(publicErrors.length===0,publicErrors.join('; '));
   return src;
