@@ -37,6 +37,42 @@ const STORAGE='pzd_v32_rankings';const SETTINGS='pzd_v32_settings';
 const sessionFallback={};
 const read=(key,fallback)=>{try{let x=JSON.parse(localStorage.getItem(key));return x??sessionFallback[key]??fallback}catch{return sessionFallback[key]??fallback}};
 const store=(key,v)=>{sessionFallback[key]=v;try{localStorage.setItem(key,JSON.stringify(v))}catch{}};
+// Cloud leaderboard: local records are kept for offline play; only new completed player runs are queued.
+const CLOUD_OUTBOX='pzd_cloud_rankings_outbox_v1';
+let cloudState={status:'unconfigured',error:'',entries:{easy:[],hard:[]}},cloudSyncing=false,cloudSyncError='';
+function cloudRecordId(){
+ if(typeof crypto!=='undefined'&&typeof crypto.randomUUID==='function')return 'r'+crypto.randomUUID().replace(/-/g,'');
+ return 'r'+Array.from({length:32},()=>rnd(0,15).toString(16)).join('');
+}
+function cloudOutbox(){const items=read(CLOUD_OUTBOX,[]);return Array.isArray(items)?items:[]}
+function queueCloudRanking(record){
+ const entry={id:cloudRecordId(),nickname:String(record.nickname),diff:record.diff,score:Math.round(record.score),time:Math.round(record.time*100)/100,trace:Math.round(record.trace*10)/10,grade:record.grade,date:String(record.date)};
+ store(CLOUD_OUTBOX,[...cloudOutbox(),entry].slice(-150));
+ flushCloudOutbox();
+ return entry.id;
+}
+async function flushCloudOutbox(){
+ const bridge=window.PZD_CLOUD_RANKING;
+ if(cloudSyncing||cloudState.status!=='online'||!bridge||typeof bridge.submit!=='function')return;
+ cloudSyncing=true;cloudSyncError='';
+ try{
+  for(const entry of cloudOutbox()){
+   try{await bridge.submit(entry)}catch(error){cloudSyncError=String(error?.code||error?.message||error);break}
+   store(CLOUD_OUTBOX,cloudOutbox().filter(x=>x.id!==entry.id));
+   if(game?.cloudRecordId===entry.id&&game.saved){
+    const feedback=$('#nicknameFeedback');
+    if(feedback)feedback.textContent='REGISTERED // '+game.nickname+' · 서버 통합 랭킹 동기화 완료';
+   }
+  }
+ }finally{cloudSyncing=false;if(screen==='ranking')renderRanking()}
+}
+window.addEventListener('pzd-cloud-state',event=>{
+ const detail=event.detail;
+ if(!detail||!detail.entries)return;
+ cloudState={status:detail.status||'offline',error:detail.error||'',entries:{easy:Array.isArray(detail.entries.easy)?detail.entries.easy:[],hard:Array.isArray(detail.entries.hard)?detail.entries.hard:[]}};
+ if(screen==='ranking')renderRanking();
+ if(cloudState.status==='online')flushCloudOutbox();
+});
 const settings=Object.assign({sound:true,volume:45,parallax:true,motion:true,largeText:false},read(SETTINGS,{}));
 // Legacy visual choices were removed. Always use the original console appearance.
 delete settings.theme;
@@ -1063,7 +1099,7 @@ function endGame(won,reason=''){if(!game||['won','failed','abandoned'].includes(
 function normalizeNickname(value){return String(value??'').trim()}
 function normalizeContactPhone(value){const digits=String(value??'').replace(/[^0-9]/g,'');return /^01[016789][0-9]{7,8}$/.test(digits)?digits:''}
 function formatContactPhone(value){const s=normalizeContactPhone(value);return !s?'—':s.slice(0,3)+'-'+s.slice(3,-4)+'-'+s.slice(-4)}
-function registerNickname(){if(devGameplay){toast('DEV SANDBOX 기록은 랭킹에 저장되지 않습니다.',true);return}if(!game||game.phase!=='won'||game.saved||!game.pendingRecord)return;let nickname=normalizeNickname($('#nicknameInput').value);let feedback=$('#nicknameFeedback');if(!nickname){feedback.className='nickname-feedback bad';feedback.textContent='닉네임을 입력하세요.';$('#nicknameInput').focus();return}if(nickname.length>12||!/^[가-힣A-Za-z0-9_.-]+$/.test(nickname)){feedback.className='nickname-feedback bad';feedback.textContent='한글·영문·숫자·_ . - 만 사용해 12자 이내로 입력하세요.';$('#nicknameInput').focus();return}let phone='';if(game.diff==='hard'){const rawPhone=$('#hardContactPhone').value.trim();phone=normalizeContactPhone(rawPhone);if(rawPhone&&!phone){feedback.className='nickname-feedback bad';feedback.textContent='전화번호 형식을 확인하세요 (예: 010-1234-5678).';$('#hardContactPhone').focus();return}}let records=read(STORAGE,[]);if(!Array.isArray(records))records=[];records.push({...game.pendingRecord,nickname,...(phone?{contactPhone:phone}:{})});store(STORAGE,records.slice(-150));game.nickname=nickname;game.saved=true;feedback.className='nickname-feedback good';feedback.textContent=`REGISTERED // ${nickname} 이름으로 랭킹 기록이 저장되었습니다.`;$('#nicknameInput').disabled=true;$('#hardContactPhone').disabled=true;$('#nicknameSave').disabled=true;$('#nicknameSave').textContent='등록 완료 ✓';sound('ok')}
+function registerNickname(){if(devGameplay){toast('DEV SANDBOX 기록은 랭킹에 저장되지 않습니다.',true);return}if(!game||game.phase!=='won'||game.saved||!game.pendingRecord)return;let nickname=normalizeNickname($('#nicknameInput').value);let feedback=$('#nicknameFeedback');if(!nickname){feedback.className='nickname-feedback bad';feedback.textContent='닉네임을 입력하세요.';$('#nicknameInput').focus();return}if(nickname.length>12||!/^[가-힣A-Za-z0-9_.-]+$/.test(nickname)){feedback.className='nickname-feedback bad';feedback.textContent='한글·영문·숫자·_ . - 만 사용해 12자 이내로 입력하세요.';$('#nicknameInput').focus();return}let phone='';if(game.diff==='hard'){const rawPhone=$('#hardContactPhone').value.trim();phone=normalizeContactPhone(rawPhone);if(rawPhone&&!phone){feedback.className='nickname-feedback bad';feedback.textContent='전화번호 형식을 확인하세요 (예: 010-1234-5678).';$('#hardContactPhone').focus();return}}let records=read(STORAGE,[]);if(!Array.isArray(records))records=[];records.push({...game.pendingRecord,nickname,...(phone?{contactPhone:phone}:{})});store(STORAGE,records.slice(-150));game.nickname=nickname;game.cloudRecordId=queueCloudRanking({...game.pendingRecord,nickname});game.saved=true;feedback.className='nickname-feedback good';feedback.textContent=`REGISTERED // ${nickname} · 이 기기에 저장됨 · ${cloudState.status==='online'?'서버 동기화 중':'서버 연결 시 자동 전송 대기'}`;$('#nicknameInput').disabled=true;$('#hardContactPhone').disabled=true;$('#nicknameSave').disabled=true;$('#nicknameSave').textContent='등록 완료 ✓';sound('ok')}
 $('#nicknameSave').onclick=registerNickname;
 $('#nicknameInput').addEventListener('keydown',e=>{if(e.key==='Enter')registerNickname()});
 function openPause(){
@@ -1214,7 +1250,8 @@ function formatRankingTime(seconds){
  return `${String(Math.floor(centis/6000)).padStart(2,'0')}:${String(Math.floor(centis/100)%60).padStart(2,'0')}.${String(centis%100).padStart(2,'0')}`;
 }
 function renderRanking(){
- const raw=read(STORAGE,[]);
+ const serverLive=cloudState.status==='online';
+ const raw=serverLive?cloudState.entries[rankDiff]:read(STORAGE,[]);
  const records=(Array.isArray(raw)?raw:[]).map(normalizeRankingRecord).filter(Boolean).filter(r=>r.diff===rankDiff);
  assignOverallRankingScores(records);
  records.sort((a,b)=>compareRankingRecords(a,b,rankSort));
@@ -1232,6 +1269,13 @@ function renderRanking(){
  const labels={overall:'종합 지수순',score:'최고 점수순',time:'최단 시간순',trace:'최저 추적도순'};
  const rules={overall:'점수 50% · 시간 30% · 추적도 20% | 동률: 점수 → 시간 → 추적도',score:'동점: 소요 시간 → 추적도 → 최신 기록',time:'동률: 점수 → 추적도 → 최신 기록',trace:'동률: 점수 → 소요 시간 → 최신 기록'};
  $('#rankingSummary').textContent=`${rankDiff==='hard'?'어려움':'쉬움'} · ${labels[rankSort]} · ${records.length}개 기록${records.length>20?' (상위 20개 표시)':''}`;
+ const status=$('#rankingCloudStatus'),detail=$('#rankingCloudDetail'),bar=$('#rankingCloudBar');
+ if(status&&detail&&bar){
+  const count=cloudOutbox().length;
+  status.textContent=serverLive?'SERVER LIVE · 전체 기기 실시간 랭킹':cloudState.status==='connecting'?'SERVER CONNECTING · 서버 연결 중':cloudState.status==='offline'?'OFFLINE · 이 기기 기록':cloudState.status==='error'?'SERVER ERROR · 이 기기 기록':'LOCAL · 서버 설정 필요';
+  detail.textContent=serverLive?'서버 기록 자동 갱신'+(count?' · 전송 대기 '+count+'건':''):cloudState.status==='unconfigured'?'Firebase 프로젝트를 연결하면 모든 기기의 랭킹이 통합됩니다.':(cloudSyncError||cloudState.error||'연결 복구 시 자동으로 서버 기록을 불러옵니다.')+(count?' · 전송 대기 '+count+'건':'');
+  bar.dataset.status=serverLive?'online':cloudState.status;
+ }
  $('#rankingRule').textContent=rules[rankSort];
  $$('[data-sort]').forEach(b=>{
   const selected=b.dataset.sort===rankSort;
