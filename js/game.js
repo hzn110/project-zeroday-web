@@ -341,6 +341,7 @@ function renderDevDashboard(){
  });
  renderDevTuneEditor();
  renderDevRankPreview();
+ renderDevHardContacts();
 }
 
 function devOutput(message,kind=''){
@@ -409,6 +410,7 @@ function devSeedRankings(){
   {nickname:'QA_STEALTH_H',diff:'hard',score:5800,time:142,trace:4,grade:'S',date:today}
  ];
  store(STORAGE,[...records,...samples].slice(-150));
+ renderDevHardContacts();
  devOutput('RANKING QA // 정렬 검증용 샘플 6개 추가: 점수·시간·추적도 탭마다 순서가 달라집니다.','good');
 }
 
@@ -422,6 +424,13 @@ function renderDevRankPreview(){
   if(!record)return '';
   return `<div class="dev-ranking-entry"><strong>${esc(record.nickname)}</strong><span>${record.diff==='hard'?'HARD':'EASY'}</span><span>${fmt(record.score)} PT</span><span>${formatRankingTime(record.time)}</span><span>TRACE ${record.trace===null?'—':record.trace+'%'}</span><span>GRADE ${esc(record.grade)}</span></div>`;
  }).join(''):'등록된 기록이 없습니다.';
+}
+function renderDevHardContacts(){
+ const el=$('#devHardContacts');if(!el)return;
+ if(!devAuthenticated){el.textContent='개발자 인증 후 확인할 수 있습니다.';return}
+ const raw=read(STORAGE,[]);
+ const records=(Array.isArray(raw)?raw:[]).filter(r=>r&&r.diff==='hard'&&normalizeContactPhone(r.contactPhone)).slice().reverse();
+ el.innerHTML=records.length?records.map(r=>`<div class="dev-ranking-entry"><strong>${esc(String(r.nickname||'ANON'))}</strong><span>${esc(formatContactPhone(r.contactPhone))}</span><span>${esc(String(r.date||'—'))}</span></div>`).join(''):'전화번호를 등록한 하드모드 기록이 없습니다.';
 }
 function devRegisterRanking(event){
  event?.preventDefault();
@@ -456,6 +465,7 @@ function devRegisterRanking(event){
  feedback.textContent=`등록 완료 // ${nickname} · ${difficulty==='hard'?'어려움':'쉬움'} · ${fmt(score)}점 · ${formatRankingTime(record.time)} · TRACE ${record.trace}% · ${grade}등급`;
  devOutput(`RANKING MANUAL ENTRY // ${nickname} 기록이 현재 브라우저 랭킹에 추가되었습니다.`,'good');
  renderDevRankPreview();
+ renderDevHardContacts();
  sound('ok');
 }
 
@@ -465,6 +475,7 @@ function devClearRankings(){
   store(STORAGE,[]);
   devOutput('ADMIN DATA // 랭킹 기록을 모두 삭제했습니다.','good');
   renderDevRankPreview();
+  renderDevHardContacts();
   toast('DEV: 랭킹 기록 전체 삭제 완료');
  }
 }
@@ -675,10 +686,10 @@ let glitchTimer=null;
 function triggerMenuGlitch(){
  if(screen!=='menu'||!settings.motion||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
  menuLogo.classList.remove('v4-glitching');void menuLogo.offsetWidth;menuLogo.classList.add('v4-glitching');
- setTimeout(()=>menuLogo.classList.remove('v4-glitching'),430);
+ setTimeout(()=>menuLogo.classList.remove('v4-glitching'),570);
 }
 function scheduleMenuGlitch(){
- glitchTimer=setTimeout(()=>{if(screen==='menu')triggerMenuGlitch();scheduleMenuGlitch();},1850+Math.random()*2600);
+ glitchTimer=setTimeout(()=>{if(screen==='menu')triggerMenuGlitch();scheduleMenuGlitch();},650+Math.random()*1050);
 }
 scheduleMenuGlitch();
 const menuEvents=[
@@ -879,13 +890,13 @@ function updateEdgeGlitch(){
  if(!effect)return;
  // Mission elapsed time (not wall time) drives the escalation. Pauses freeze it.
  const progress=Math.max(0,Math.min(1,(game.elapsed||0)/Math.max(1,game.duration||1)));
- const intensity=Math.pow(progress,1.35);
- effect.style.setProperty('--edge-opacity',(0.26+0.65*intensity).toFixed(3));
- effect.style.setProperty('--edge-speed',(3.6-2.95*intensity).toFixed(2)+'s');
- effect.style.setProperty('--edge-width',Math.round(118+125*intensity)+'px');
- effect.style.setProperty('--edge-height',Math.round(105+105*intensity)+'px');
- effect.style.setProperty('--edge-shift',Math.round(4+17*intensity)+'px');
- effect.style.setProperty('--edge-static',(0.11+0.52*intensity).toFixed(3));
+ const intensity=.36+.64*Math.pow(progress,1.05);
+ effect.style.setProperty('--edge-opacity',(0.37+0.59*intensity).toFixed(3));
+ effect.style.setProperty('--edge-speed',(2.9-2.42*intensity).toFixed(2)+'s');
+ effect.style.setProperty('--edge-width',Math.round(145+150*intensity)+'px');
+ effect.style.setProperty('--edge-height',Math.round(130+130*intensity)+'px');
+ effect.style.setProperty('--edge-shift',Math.round(7+21*intensity)+'px');
+ effect.style.setProperty('--edge-static',(0.23+0.67*intensity).toFixed(3));
  effect.dataset.intensity=progress<.35?'low':progress<.7?'medium':'high';
 }
 
@@ -1047,9 +1058,11 @@ function solvePuzzle(){if(!puzzle||puzzle.solved)return;puzzle.solved=true;let s
 function applyNodeReward(n){switch(n.type){case 'normal':game.reveal=true;break;case 'data':game.intel++;game.coreClue++;game.score+=250;break;case 'security':game.trace=Math.max(0,game.trace-12);break;case 'blocker':game.shield++;break}}
 function renderCoreStageDone(stage){clearPuzzleTimers();let lines=['데이터 서버에서 암호 정보 확보','통신 경로를 재설정했습니다','인증 시스템을 통과했습니다','방어 장치의 차단을 해제했습니다'];let stageNames=['데이터','연결','보안','차단','최종 XOR'];openOverlay('중앙 서버 / 보안 계층 완료',`${stage+1}단계 해제 완료`,`<div class="core-progress">${Array.from({length:5},(_,i)=>`<span class="${i<game.coreStage?'done':i===game.coreStage?'now':''}"></span>`).join('')}</div><div class="finish-card"><div class="symbol">✓</div><h3>${lines[stage]}</h3><p>이전 단계의 보안 정보가 최종 암호 해제에 사용됩니다.</p><p style="color:var(--cyan);margin-top:14px">다음 단계: ${stageNames[stage+1]}</p></div>`,`<button class="outline" id="coreHold">Ⅱ 일시정지</button><button class="bright" id="coreContinue">${stage===3?'최종 암호 해제':'다음 보안 단계'} →</button>`,'core');$('#coreHold').onclick=openPause;$('#coreContinue').onclick=renderCorePuzzle}
 function renderCorePuzzle(){if(!game||game.phase!=='core')return;let keys=['data','normal','security','blocker'];let key=game.coreStage===4?'xor':game.reserved[keys[game.coreStage]];let fakeNode={id:'중앙 서버',type:keys[game.coreStage]||'core'};displayPuzzle(key,fakeNode,true)}
-function endGame(won,reason=''){if(!game||['won','failed','abandoned'].includes(game.phase))return;game.phase=won?'won':'failed';clearPuzzleTimers();closeOverlay();pauseActive=false;let elapsed=game.duration-game.remaining,trace=Math.floor(game.trace),timeBonus=0,stealthBonus=0,speedTier='';if(won){let remainRatio=game.duration>0?game.remaining/game.duration:0,baseTimeBonus=Math.floor(game.remaining*2),speedBonus=remainRatio>=.6?1500:remainRatio>=.4?900:remainRatio>=.2?400:0;speedTier=remainRatio>=.6?'SPEED GHOST':remainRatio>=.4?'FAST BREACH':remainRatio>=.2?'QUICK EXIT':'';timeBonus=baseTimeBonus+speedBonus;stealthBonus=Math.floor((100-game.trace)*20);game.score+=timeBonus+stealthBonus;game.timeBonus=timeBonus;game.speedBonus=speedBonus;game.speedTier=speedTier;game.stealthBonus=stealthBonus;let grade=trace<30&&game.misses<=2?'S':trace<55?'A':trace<78?'B':'C';game.grade=grade;game.ending=trace<30?'완벽한 침투':trace<70?'침투 성공':'위험한 성공';game.saved=false;game.nickname='';game.pendingRecord={diff:game.diff,score:game.score,time:elapsed,trace,grade,date:new Date().toLocaleDateString('ko-KR')};sound('complete')}else{game.grade='—';game.ending='침투 실패';game.pendingRecord=null;sound('bad')}$('#resultIcon').textContent=won?'◈':'✕';$('#resultEyebrow').textContent=won?'최종 보안 해제 / 완료':'작전 중단 / 경고';$('#resultTitle').textContent=game.ending;$('#resultDescription').textContent=won?(trace<30?'추적 흔적을 거의 남기지 않고 중앙 서버에 접근했습니다.':trace<70?'중앙 서버의 보안을 모두 돌파했습니다.':'위험한 추적 상태에서도 마지막 암호를 해제했습니다.'):(reason||'제한 시간이 지나거나 위치가 노출되어 작전이 종료되었습니다.');$('#resultGrade').textContent=game.grade;$('#resultScore').textContent=fmt(game.score);$('#resultTime').textContent=mmss(elapsed);$('#resultTrace').textContent=trace+'%';$('#resultNodes').textContent=game.cleared+'/6';$('#resultMisses').textContent=game.misses+'회';$('#resultHints').textContent=game.hints+'회';$('#resultTimeBonus').textContent=won?'+'+fmt(timeBonus):'+0';$('#resultStealthBonus').textContent=won?'+'+fmt(stealthBonus):'+0';$('#resultTip').innerHTML=won?(speedTier?`<b>${speedTier}</b> // 제한시간을 크게 남겨 추가 시간 보너스를 확보했습니다. <span>최종 TIME BONUS +${fmt(timeBonus)}</span>`:`남은 시간에 따라 <b>TIME BONUS +${fmt(timeBonus)}</b>가 반영되었습니다. 더 빠르게 침투하면 추가 보너스 구간에 진입합니다.`):'일반 노드의 보상과 힌트를 적절히 사용하면 다음 작전에서 유리합니다.';$('#resultRank').style.display=won?'':'none';$('#nicknameRegister').classList.toggle('hidden',!won||devGameplay);$('#nicknameInput').value='';$('#nicknameInput').disabled=false;$('#nicknameSave').disabled=false;$('#nicknameSave').textContent='기록 등록';$('#nicknameFeedback').className='nickname-feedback';$('#nicknameFeedback').textContent=won&&!devGameplay?'클리어 기록은 닉네임을 등록한 뒤 랭킹에 저장됩니다.':'';go('result');if(won)setTimeout(()=>$('#nicknameInput')?.focus(),180)}
+function endGame(won,reason=''){if(!game||['won','failed','abandoned'].includes(game.phase))return;game.phase=won?'won':'failed';clearPuzzleTimers();closeOverlay();pauseActive=false;let elapsed=game.duration-game.remaining,trace=Math.floor(game.trace),timeBonus=0,stealthBonus=0,speedTier='';if(won){let remainRatio=game.duration>0?game.remaining/game.duration:0,baseTimeBonus=Math.floor(game.remaining*2),speedBonus=remainRatio>=.6?1500:remainRatio>=.4?900:remainRatio>=.2?400:0;speedTier=remainRatio>=.6?'SPEED GHOST':remainRatio>=.4?'FAST BREACH':remainRatio>=.2?'QUICK EXIT':'';timeBonus=baseTimeBonus+speedBonus;stealthBonus=Math.floor((100-game.trace)*20);game.score+=timeBonus+stealthBonus;game.timeBonus=timeBonus;game.speedBonus=speedBonus;game.speedTier=speedTier;game.stealthBonus=stealthBonus;let grade=trace<30&&game.misses<=2?'S':trace<55?'A':trace<78?'B':'C';game.grade=grade;game.ending=trace<30?'완벽한 침투':trace<70?'침투 성공':'위험한 성공';game.saved=false;game.nickname='';game.pendingRecord={diff:game.diff,score:game.score,time:elapsed,trace,grade,date:new Date().toLocaleDateString('ko-KR')};sound('complete')}else{game.grade='—';game.ending='침투 실패';game.pendingRecord=null;sound('bad')}$('#resultIcon').textContent=won?'◈':'✕';$('#resultEyebrow').textContent=won?'최종 보안 해제 / 완료':'작전 중단 / 경고';$('#resultTitle').textContent=game.ending;$('#resultDescription').textContent=won?(trace<30?'추적 흔적을 거의 남기지 않고 중앙 서버에 접근했습니다.':trace<70?'중앙 서버의 보안을 모두 돌파했습니다.':'위험한 추적 상태에서도 마지막 암호를 해제했습니다.'):(reason||'제한 시간이 지나거나 위치가 노출되어 작전이 종료되었습니다.');$('#resultGrade').textContent=game.grade;$('#resultScore').textContent=fmt(game.score);$('#resultTime').textContent=mmss(elapsed);$('#resultTrace').textContent=trace+'%';$('#resultNodes').textContent=game.cleared+'/6';$('#resultMisses').textContent=game.misses+'회';$('#resultHints').textContent=game.hints+'회';$('#resultTimeBonus').textContent=won?'+'+fmt(timeBonus):'+0';$('#resultStealthBonus').textContent=won?'+'+fmt(stealthBonus):'+0';$('#resultTip').innerHTML=won?(speedTier?`<b>${speedTier}</b> // 제한시간을 크게 남겨 추가 시간 보너스를 확보했습니다. <span>최종 TIME BONUS +${fmt(timeBonus)}</span>`:`남은 시간에 따라 <b>TIME BONUS +${fmt(timeBonus)}</b>가 반영되었습니다. 더 빠르게 침투하면 추가 보너스 구간에 진입합니다.`):'일반 노드의 보상과 힌트를 적절히 사용하면 다음 작전에서 유리합니다.';$('#resultRank').style.display=won?'':'none';$('#nicknameRegister').classList.toggle('hidden',!won||devGameplay);$('#hardContactField').classList.toggle('hidden',!won||devGameplay||game.diff!=='hard');$('#hardContactPhone').value='';$('#nicknameInput').value='';$('#hardContactPhone').disabled=false;$('#nicknameInput').disabled=false;$('#nicknameSave').disabled=false;$('#nicknameSave').textContent='기록 등록';$('#nicknameFeedback').className='nickname-feedback';$('#nicknameFeedback').textContent=won&&!devGameplay?'클리어 기록은 닉네임을 등록한 뒤 랭킹에 저장됩니다.':'';go('result');if(won)setTimeout(()=>$('#nicknameInput')?.focus(),180)}
 function normalizeNickname(value){return String(value??'').trim()}
-function registerNickname(){if(devGameplay){toast('DEV SANDBOX 기록은 랭킹에 저장되지 않습니다.',true);return}if(!game||game.phase!=='won'||game.saved||!game.pendingRecord)return;let nickname=normalizeNickname($('#nicknameInput').value);let feedback=$('#nicknameFeedback');if(!nickname){feedback.className='nickname-feedback bad';feedback.textContent='닉네임을 입력하세요.';$('#nicknameInput').focus();return}if(nickname.length>12||!/^[가-힣A-Za-z0-9_.-]+$/.test(nickname)){feedback.className='nickname-feedback bad';feedback.textContent='한글·영문·숫자·_ . - 만 사용해 12자 이내로 입력하세요.';$('#nicknameInput').focus();return}let records=read(STORAGE,[]);if(!Array.isArray(records))records=[];records.push({...game.pendingRecord,nickname});store(STORAGE,records.slice(-150));game.nickname=nickname;game.saved=true;feedback.className='nickname-feedback good';feedback.textContent=`REGISTERED // ${nickname} 이름으로 랭킹 기록이 저장되었습니다.`;$('#nicknameInput').disabled=true;$('#nicknameSave').disabled=true;$('#nicknameSave').textContent='등록 완료 ✓';sound('ok')}
+function normalizeContactPhone(value){const digits=String(value??'').replace(/[^0-9]/g,'');return /^01[016789][0-9]{7,8}$/.test(digits)?digits:''}
+function formatContactPhone(value){const s=normalizeContactPhone(value);return !s?'—':s.slice(0,3)+'-'+s.slice(3,-4)+'-'+s.slice(-4)}
+function registerNickname(){if(devGameplay){toast('DEV SANDBOX 기록은 랭킹에 저장되지 않습니다.',true);return}if(!game||game.phase!=='won'||game.saved||!game.pendingRecord)return;let nickname=normalizeNickname($('#nicknameInput').value);let feedback=$('#nicknameFeedback');if(!nickname){feedback.className='nickname-feedback bad';feedback.textContent='닉네임을 입력하세요.';$('#nicknameInput').focus();return}if(nickname.length>12||!/^[가-힣A-Za-z0-9_.-]+$/.test(nickname)){feedback.className='nickname-feedback bad';feedback.textContent='한글·영문·숫자·_ . - 만 사용해 12자 이내로 입력하세요.';$('#nicknameInput').focus();return}let phone='';if(game.diff==='hard'){const rawPhone=$('#hardContactPhone').value.trim();phone=normalizeContactPhone(rawPhone);if(rawPhone&&!phone){feedback.className='nickname-feedback bad';feedback.textContent='전화번호 형식을 확인하세요 (예: 010-1234-5678).';$('#hardContactPhone').focus();return}}let records=read(STORAGE,[]);if(!Array.isArray(records))records=[];records.push({...game.pendingRecord,nickname,...(phone?{contactPhone:phone}:{})});store(STORAGE,records.slice(-150));game.nickname=nickname;game.saved=true;feedback.className='nickname-feedback good';feedback.textContent=`REGISTERED // ${nickname} 이름으로 랭킹 기록이 저장되었습니다.`;$('#nicknameInput').disabled=true;$('#hardContactPhone').disabled=true;$('#nicknameSave').disabled=true;$('#nicknameSave').textContent='등록 완료 ✓';sound('ok')}
 $('#nicknameSave').onclick=registerNickname;
 $('#nicknameInput').addEventListener('keydown',e=>{if(e.key==='Enter')registerNickname()});
 function openPause(){
