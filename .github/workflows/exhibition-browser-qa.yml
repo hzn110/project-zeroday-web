@@ -14,10 +14,12 @@ permissions:
 jobs:
   browser:
     name: Browser smoke tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 18
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -44,6 +46,7 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ ! -f qa/exhibition-test-exit.txt ]; then echo 1 > qa/exhibition-test-exit.txt; fi
           git add qa/exhibition-browser-report.json qa/exhibition-test-exit.txt
           git commit -m 'qa: publish latest live Chromium exhibition test report' || true
           git push origin HEAD:main
