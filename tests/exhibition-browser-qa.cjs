@@ -28,6 +28,7 @@ async function run(){
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/js/game.js*',async route=>{
   const response=await route.fetch(),original=await response.text();
+  console.log('LIVE_SOURCE_PROBE',JSON.stringify({bytes:original.length,inlineCue:original.includes("tile.style.setProperty('background-color','#ff8c70','important')"),contactPhone:original.includes('normalizeContactPhone')}));
   const altered=original.replace(/\}\)\(\);\s*$/,";window.__EX_QA={\n open:(key,mode='easy')=>{clearPuzzleTimers();if(puzzle)closeOverlay();const m=PUZZLES[key];if(!m)throw Error('Unknown '+key);const n={id:'QA_'+key,codename:'QA',type:m.type,key,cleared:false,x:0,y:0};game=makeDevGame(n);game.diff=mode;game.paused=false;devTest=true;devTestKey=key;displayPuzzle(key,n,false);return puzzle.key},\n state:()=>({key:puzzle?.key,solved:puzzle?.solved,phase:game?.phase,mode:game?.diff,trace:game?.trace}),\n pass:()=>solvePuzzle(),\n start:mode=>{clearPuzzleTimers();if(puzzle)closeOverlay();devTest=false;game=null;puzzle=null;diff=mode;startGame();return window.ZERO_DAY_STATUS()},\n toCore:()=>{game.cleared=4;game.lastNodeId='entry';game.edges.push({a:'entry',b:'core'});renderMap();updateHud();openCoreIntel()},\n coreBits:()=>game?.coreBits,\n win:mode=>{clearPuzzleTimers();if(puzzle)closeOverlay();devTest=false;devGameplay=false;game=makeDevGame({id:'QA',type:'normal'});game.diff=mode;game.paused=false;game.duration=mode==='hard'?180:300;game.remaining=80;game.phase='map';endGame(true)},\n rankings:()=>read(STORAGE,[]),\n threshold:()=>MIN_CORE_NODES\n};"+'})();');
   ok(altered!==original,'QA instrument hook not attached');
   await route.fulfill({response,body:altered});
@@ -51,6 +52,7 @@ async function run(){
   await page.evaluate(()=>window.__EX_QA.open('b1','easy'));
   await page.waitForFunction(()=>document.querySelector('.memory-tile.is-cued')!==null,null,{timeout:4500});
   const bg=await page.locator('.memory-tile.is-cued').evaluate(e=>getComputedStyle(e).backgroundColor);
+  console.log('CUE_DIAG',JSON.stringify(await page.locator('.memory-tile.is-cued').evaluate(e=>({background:getComputedStyle(e).backgroundColor,inline:e.style.cssText,classes:e.className}))));
   ok(bg!=='rgba(0, 0, 0, 0)','invisible cue');
   await page.waitForFunction(()=>document.querySelector('#memoryState')?.textContent==='INPUT READY',null,{timeout:14000});
   ok(await page.locator('#memoryStart').isEnabled(),'replay disabled');
@@ -106,7 +108,8 @@ async function run(){
   await page.locator('#nicknameInput').fill('QA_HARD');
   await page.locator('#hardContactPhone').fill('010-1234-5678');
   await page.locator('#nicknameSave').click();
-  ok((await page.evaluate(()=>window.__EX_QA.rankings())).some(x=>x.nickname==='QA_HARD'&&x.contactPhone==='01012345678'),'phone not stored');
+  const hardEntries=await page.evaluate(()=>window.__EX_QA.rankings());console.log('HARD_RECORD_DIAG',JSON.stringify({entries:hardEntries,feedback:await page.locator('#nicknameFeedback').innerText()}));
+  ok(hardEntries.some(x=>x.nickname==='QA_HARD'&&x.contactPhone==='01012345678'),'phone not stored');
   ok(!(await page.locator('#result').innerText()).includes('010-1234-5678'),'phone leaked on public screen');
  });
  await check('Easy ranking saves without requesting contact',async()=>{
