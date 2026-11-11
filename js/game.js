@@ -36,12 +36,12 @@ const STORAGE='pzd_v32_rankings';const SETTINGS='pzd_v32_settings';
 const sessionFallback={};
 const read=(key,fallback)=>{try{let x=JSON.parse(localStorage.getItem(key));return x??sessionFallback[key]??fallback}catch{return sessionFallback[key]??fallback}};
 const store=(key,v)=>{sessionFallback[key]=v;try{localStorage.setItem(key,JSON.stringify(v))}catch{}};
-const settings=Object.assign({sound:true,volume:45,parallax:true,motion:true,largeText:false,theme:'console',visibility:'balanced'},read(SETTINGS,{}));
-const VALID_THEMES=new Set(['console','polish']);
-const VALID_VISIBILITY=new Set(['balanced','clear','contrast']);
-settings.theme=VALID_THEMES.has(settings.theme)?settings.theme:'console';
-settings.visibility=VALID_VISIBILITY.has(settings.visibility)?settings.visibility:'balanced';
-let pendingTheme=settings.theme,pendingVisibility=settings.visibility;
+const settings=Object.assign({sound:true,volume:45,parallax:true,motion:true,largeText:false},read(SETTINGS,{}));
+// Legacy visual choices were removed. Always use the original console appearance.
+delete settings.theme;
+delete settings.visibility;
+document.body.removeAttribute('data-theme');
+document.body.removeAttribute('data-visibility');
 
 /* Developer puzzle balance overrides: per-browser, validated, and never mixed with player settings. */
 const PUZZLE_TUNING_STORAGE='pzd_v32_puzzle_balance';
@@ -340,6 +340,7 @@ function renderDevDashboard(){
   $('#devTuningPanel').scrollIntoView({behavior:'smooth',block:'start'});
  });
  renderDevTuneEditor();
+ renderDevRankPreview();
 }
 
 function devOutput(message,kind=''){
@@ -410,11 +411,60 @@ function devSeedRankings(){
  store(STORAGE,[...records,...samples].slice(-150));
  devOutput('RANKING QA // 정렬 검증용 샘플 6개 추가: 점수·시간·추적도 탭마다 순서가 달라집니다.','good');
 }
+
+function renderDevRankPreview(){
+ const recent=$('#devRankRecent');
+ if(!recent)return;
+ const raw=read(STORAGE,[]);
+ const records=(Array.isArray(raw)?raw:[]).filter(r=>r&&r.manualEntry===true).slice(-5).reverse();
+ recent.innerHTML=records.length?records.map(r=>{
+  const record=normalizeRankingRecord(r,0);
+  if(!record)return '';
+  return `<div class="dev-ranking-entry"><strong>${esc(record.nickname)}</strong><span>${record.diff==='hard'?'HARD':'EASY'}</span><span>${fmt(record.score)} PT</span><span>${formatRankingTime(record.time)}</span><span>TRACE ${record.trace===null?'—':record.trace+'%'}</span><span>GRADE ${esc(record.grade)}</span></div>`;
+ }).join(''):'등록된 기록이 없습니다.';
+}
+function devRegisterRanking(event){
+ event?.preventDefault();
+ if(!devAuthenticated||screen!=='developer')return;
+ const feedback=$('#devRankFeedback');
+ const fail=(message,field)=>{
+  feedback.className='dev-ranking-feedback error';
+  feedback.textContent=message;
+  if(field)$('#'+field).focus();
+ };
+ const nickname=$('#devRankName').value.trim();
+ if(!nickname||nickname.length>12||!/^[가-힣A-Za-z0-9_.-]+$/.test(nickname)){
+  fail('닉네임은 한글·영문·숫자·_ . - 만 사용하여 1~12자로 입력하세요.','devRankName');return;
+ }
+ const difficulty=$('#devRankDiff').value,grade=$('#devRankGrade').value;
+ if(!['easy','hard'].includes(difficulty)||!['S','A','B','C'].includes(grade)){
+  fail('난이도와 등급을 선택하세요.');return;
+ }
+ const numeric=id=>{const raw=$('#'+id).value.trim();return raw===''?NaN:Number(raw)};
+ const score=numeric('devRankScore'),minutes=numeric('devRankMinutes'),seconds=numeric('devRankSeconds'),trace=numeric('devRankTrace');
+ if(!Number.isInteger(score)||score<0||score>10000000){fail('점수는 0~10,000,000 사이의 정수여야 합니다.','devRankScore');return}
+ if(!Number.isInteger(minutes)||minutes<0||minutes>99){fail('시간의 분은 0~99 사이의 정수여야 합니다.','devRankMinutes');return}
+ if(!Number.isInteger(seconds)||seconds<0||seconds>59){fail('시간의 초는 0~59 사이의 정수여야 합니다.','devRankSeconds');return}
+ if(!Number.isFinite(trace)||trace<0||trace>100||Math.abs(trace*10-Math.round(trace*10))>1e-7){
+  fail('추적도는 0~100% 사이에서 소수 첫째 자리까지 입력하세요.','devRankTrace');return;
+ }
+ const record={nickname,diff:difficulty,score,time:minutes*60+seconds,trace:Math.round(trace*10)/10,grade,date:new Date().toLocaleDateString('ko-KR'),manualEntry:true};
+ const existing=read(STORAGE,[]);
+ const records=Array.isArray(existing)?existing:[];
+ store(STORAGE,[...records,record].slice(-150));
+ feedback.className='dev-ranking-feedback success';
+ feedback.textContent=`등록 완료 // ${nickname} · ${difficulty==='hard'?'어려움':'쉬움'} · ${fmt(score)}점 · ${formatRankingTime(record.time)} · TRACE ${record.trace}% · ${grade}등급`;
+ devOutput(`RANKING MANUAL ENTRY // ${nickname} 기록이 현재 브라우저 랭킹에 추가되었습니다.`,'good');
+ renderDevRankPreview();
+ sound('ok');
+}
+
 function devClearRankings(){
  if(!devAuthenticated)return;
  if(confirm('DEV ADMIN // 현재 브라우저의 모든 플레이어 랭킹 기록을 삭제할까요?')){
   store(STORAGE,[]);
   devOutput('ADMIN DATA // 랭킹 기록을 모두 삭제했습니다.','good');
+  renderDevRankPreview();
   toast('DEV: 랭킹 기록 전체 삭제 완료');
  }
 }
@@ -477,6 +527,7 @@ $('#devLaunchHard').onclick=()=>devLaunchGame('hard');
 $('#devNetworkScan').onclick=devValidateNetworks;
 $('#devSeedRanking').onclick=devSeedRankings;
 $('#devClearRanking').onclick=devClearRankings;
+$('#devRankForm').addEventListener('submit',devRegisterRanking);
 $('#devResetSettings').onclick=devResetSettings;
 $('#devTunePuzzle').onchange=()=>{devTuneSelectedKey=$('#devTunePuzzle').value;renderDevTuneEditor()};
 $('#devTuneSave').onclick=saveDevTune;
@@ -497,29 +548,6 @@ document.addEventListener('keydown',e=>{
  }
 });
 
-function previewTheme(theme){
- pendingTheme=VALID_THEMES.has(theme)?theme:'console';
- document.body.dataset.theme=pendingTheme;
- // querySelectorAll: one matching button is not a collection and cannot use forEach.
- $$('[data-theme-option]').forEach(button=>{
-  const selected=button.dataset.themeOption===pendingTheme;
-  button.classList.toggle('selected',selected);
-  button.setAttribute('aria-pressed',String(selected));
-  const label=button.querySelector('.setup-choice-indicator');
-  if(label)label.textContent=selected?'선택됨 ✓':'이 테마 선택';
- });
-}
-function previewVisibility(mode){
- pendingVisibility=VALID_VISIBILITY.has(mode)?mode:'balanced';
- document.body.dataset.visibility=pendingVisibility;
- $$('[data-visibility-option]').forEach(button=>{
-  const selected=button.dataset.visibilityOption===pendingVisibility;
-  button.classList.toggle('selected',selected);
-  button.setAttribute('aria-pressed',String(selected));
-  const label=button.querySelector('.setup-choice-indicator');
-  if(label)label.textContent=selected?'선택됨 ✓':'이 모드 선택';
- });
-}
 function syncSettings(){
  document.body.classList.toggle('large-text',settings.largeText);
  document.body.classList.toggle('motion-on',settings.motion);
@@ -529,25 +557,9 @@ function syncSettings(){
  $('#setParallax').checked=settings.parallax;
  $('#setMotion').checked=settings.motion;
  $('#setLargeText').checked=settings.largeText;
- previewTheme(settings.theme);
- previewVisibility(settings.visibility);
 }
 syncSettings();
-$$('[data-theme-option]').forEach(button=>button.addEventListener('click',()=>previewTheme(button.dataset.themeOption)));
-$$('[data-visibility-option]').forEach(button=>button.addEventListener('click',()=>previewVisibility(button.dataset.visibilityOption)));
-$('#menuStart').onclick=()=>{syncSettings();go('themeSelect')};
-$('#themeSelectBack').onclick=()=>{syncSettings();go('menu')};
-$('#themeSelectNext').onclick=()=>go('visibilitySelect');
-$('#visibilitySelectBack').onclick=()=>go('themeSelect');
-$('#visibilitySelectNext').onclick=()=>{
- settings.theme=pendingTheme;
- settings.visibility=pendingVisibility;
- store(SETTINGS,settings);
- tutorialStage=0;
- tutorialSolved=false;
- renderTutorial();
- go('tutorial');
-};
+$('#menuStart').onclick=()=>{tutorialStage=0;tutorialSolved=false;renderTutorial();go('tutorial')};
 $('#menuSettings').onclick=()=>{previousScreen='menu';syncSettings();go('settings')};$('#menuRank').onclick=()=>go('ranking');
 function returnToMain(){
  clearPuzzleTimers();
@@ -585,8 +597,6 @@ $('#saveSettings').onclick=()=>{
  settings.parallax=$('#setParallax').checked;
  settings.motion=$('#setMotion').checked;
  settings.largeText=$('#setLargeText').checked;
- settings.theme=pendingTheme;
- settings.visibility=pendingVisibility;
  store(SETTINGS,settings);
  syncSettings();
  toast('설정이 저장되었습니다.');
@@ -862,8 +872,26 @@ function isNodeAccessible(n){
 function isCoreAccessible(){
  return !!(game&&game.phase==='map'&&game.cleared>=3&&routeTargets().includes('core'));
 }
+
+function updateEdgeGlitch(){
+ if(!game)return;
+ const effect=$('#edgeGlitch');
+ if(!effect)return;
+ // Mission elapsed time (not wall time) drives the escalation. Pauses freeze it.
+ const progress=Math.max(0,Math.min(1,(game.elapsed||0)/Math.max(1,game.duration||1)));
+ const intensity=Math.pow(progress,1.35);
+ effect.style.setProperty('--edge-opacity',(0.26+0.65*intensity).toFixed(3));
+ effect.style.setProperty('--edge-speed',(3.6-2.95*intensity).toFixed(2)+'s');
+ effect.style.setProperty('--edge-width',Math.round(118+125*intensity)+'px');
+ effect.style.setProperty('--edge-height',Math.round(105+105*intensity)+'px');
+ effect.style.setProperty('--edge-shift',Math.round(4+17*intensity)+'px');
+ effect.style.setProperty('--edge-static',(0.11+0.52*intensity).toFixed(3));
+ effect.dataset.intensity=progress<.35?'low':progress<.7?'medium':'high';
+}
+
 function updateHud(){
  if(!game)return;
+ updateEdgeGlitch();
  $('#hudTime').textContent=mmss(game.remaining);
  $('#hudTrace').textContent=Math.floor(game.trace)+'%';
  $('#hudTraceBar').style.width=game.trace+'%';
@@ -1047,7 +1075,7 @@ function openPause(){
     <span class="game-pause-icon" aria-hidden="true">▶</span><span><b>계속하기</b><small>현재 작전으로 돌아갑니다</small></span><span class="game-pause-chevron" aria-hidden="true">›</span>
    </button>
    <button type="button" id="pauseSettings" class="game-pause-option">
-    <span class="game-pause-icon" aria-hidden="true">⚙</span><span><b>설정</b><small>화면 · 효과음 · 가시성 변경</small></span><span class="game-pause-chevron" aria-hidden="true">›</span>
+    <span class="game-pause-icon" aria-hidden="true">⚙</span><span><b>설정</b><small>효과음 · 움직임 · 글자 크기 변경</small></span><span class="game-pause-chevron" aria-hidden="true">›</span>
    </button>
    <button type="button" id="pauseExit" class="game-pause-option danger">
     <span class="game-pause-icon" aria-hidden="true">✕</span><span><b>종료</b><small>진행 중인 작전을 종료합니다</small></span><span class="game-pause-chevron" aria-hidden="true">›</span>

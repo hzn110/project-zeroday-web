@@ -4801,3 +4801,134 @@ body[data-visibility="contrast"] .game-pause-option{background:#09131e;border-co
 .overlay-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex:0 0 auto}
 .overlay-head-actions .overlay-menu-trigger{flex-basis:44px;min-width:44px;height:42px;padding:4px}
 @media(max-width:540px){.overlay-head-actions{gap:5px}.overlay-head-actions .overlay-menu-trigger{flex-basis:40px;min-width:40px;height:40px}}
+
+
+/* v4.24 — Developer: manual leaderboard record registration */
+.dev-ranking-panel{
+ margin:4px 0 34px;padding:23px;border:1px solid #426174;
+ background:linear-gradient(150deg,#101c29,#080e18 68%);
+ scroll-margin-top:20px
+}
+.dev-ranking-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}
+.dev-ranking-heading h3{font-size:22px;color:#eff9ff;margin:5px 0 7px}
+.dev-ranking-heading p{font-size:12px;color:#a8becc;line-height:1.7}
+.dev-ranking-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.dev-ranking-form label{display:flex;flex-direction:column;gap:6px;color:#b9d3e3;font-size:12px;font-weight:700;min-width:0}
+.dev-ranking-form label:first-child{grid-column:span 2}
+.dev-ranking-form input,.dev-ranking-form select{
+ width:100%;min-width:0;min-height:44px;padding:10px 12px;
+ background:#091420;border:1px solid #3b566a;color:#f0f9ff;
+ border-radius:4px;font:700 14px 'Chakra Petch','Apple SD Gothic Neo',sans-serif
+}
+.dev-ranking-form input:focus-visible,.dev-ranking-form select:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+.dev-ranking-form select option{background:#0b1724;color:#f0f9ff}
+.dev-ranking-submit{display:flex;align-items:flex-end;grid-column:span 2}
+.dev-ranking-submit button{min-height:44px;width:100%;white-space:normal}
+.dev-ranking-feedback{margin:17px 0 0;padding:11px 13px;border-left:2px solid #5d93ac;background:#081520;color:#aac1d1;font-size:12px;line-height:1.7}
+.dev-ranking-feedback.success{border-left-color:#6ce3b2;color:#9ae8c8}
+.dev-ranking-feedback.error{border-left-color:#ff6075;color:#ffadb9}
+.dev-ranking-recent{margin-top:18px;border-top:1px solid #293e4d;padding-top:13px}
+.dev-ranking-recent>b{font-size:12px;color:#a9c5d4}
+.dev-ranking-recent-list{display:grid;gap:7px;margin-top:10px;color:#8199ab;font-size:12px}
+.dev-ranking-entry{display:flex;flex-wrap:wrap;align-items:center;gap:8px 13px;padding:9px 12px;border:1px solid #263c4a;background:#091420}
+.dev-ranking-entry strong{color:#e8f7ff;min-width:95px}
+.dev-ranking-entry span{font:700 11px 'Chakra Petch',monospace;color:#a6c7d7}
+.dev-ranking-entry span:nth-child(2){color:var(--yellow)}
+@media(max-width:850px){.dev-ranking-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){
+ .dev-ranking-panel{padding:17px 14px}
+ .dev-ranking-heading{flex-direction:column}
+ .dev-ranking-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+ .dev-ranking-form label:first-child{grid-column:span 2}
+ .dev-ranking-submit{grid-column:span 2}
+}
+
+/* v4.24 — Edge signal corruption: persistent low-level interference
+   becomes denser, wider, and more frequent as mission time elapses. */
+.edge-glitch{
+ --edge-opacity:.26;--edge-speed:3.6s;--edge-width:118px;
+ --edge-height:105px;--edge-shift:4px;--edge-static:.11;
+ position:fixed;inset:0;z-index:440;pointer-events:none;overflow:hidden;
+ opacity:0;transition:opacity .25s;isolation:isolate
+}
+body.motion-on #game.active .edge-glitch{opacity:var(--edge-opacity)}
+.edge-glitch-corner{
+ position:absolute;display:block;overflow:hidden;
+ width:min(29vw,var(--edge-width));height:min(29vh,var(--edge-height));
+ mix-blend-mode:screen
+}
+.edge-glitch-corner.top-left{top:0;left:0}
+.edge-glitch-corner.top-right{top:0;right:0}
+.edge-glitch-corner.bottom-left{bottom:0;left:0}
+.edge-glitch-corner.bottom-right{bottom:0;right:0}
+.edge-glitch-corner.top-left,.edge-glitch-corner.top-right{
+ -webkit-mask-image:radial-gradient(ellipse at top left,#000 8%,rgba(0,0,0,.7) 39%,transparent 85%);
+ mask-image:radial-gradient(ellipse at top left,#000 8%,rgba(0,0,0,.7) 39%,transparent 85%)
+}
+.edge-glitch-corner.top-right{
+ -webkit-mask-image:radial-gradient(ellipse at top right,#000 8%,rgba(0,0,0,.7) 39%,transparent 85%);
+ mask-image:radial-gradient(ellipse at top right,#000 8%,rgba(0,0,0,.7) 39%,transparent 85%)
+}
+.edge-glitch-corner.bottom-left{
+ -webkit-mask-image:radial-gradient(ellipse at bottom left,#000 8%,rgba(0,0,0,.7) 39%,transparent 85%);
+ mask-image:radial-gradient(ellipse at bottom left,#000 8%,rgba(0,0,0,.7) 39%,transparent 85%)
+}
+.edge-glitch-corner.bottom-right{
+ -webkit-mask-image:radial-gradient(ellipse at bottom right,#000 8%,rgba(0,0,0,.7) 39%,transparent 85%);
+ mask-image:radial-gradient(ellipse at bottom right,#000 8%,rgba(0,0,0,.7) 39%,transparent 85%)
+}
+.edge-glitch-corner::before{
+ content:"";position:absolute;inset:0;opacity:var(--edge-static);
+ background:
+  repeating-linear-gradient(0deg,transparent 0 3px,rgba(55,236,241,.7) 4px 5px,transparent 6px 11px),
+  repeating-linear-gradient(90deg,transparent 0 11px,rgba(255,58,174,.45) 12px 13px,transparent 14px 29px);
+ animation:edgeStaticDrift calc(var(--edge-speed) * 1.37) steps(4,end) infinite
+}
+.edge-glitch-corner i{display:block;position:absolute;inset:0;opacity:0;will-change:transform,opacity}
+.edge-glitch-slice{
+ background:
+  repeating-linear-gradient(0deg,transparent 0 7px,rgba(57,236,241,.95) 8px 10px,transparent 11px 18px),
+  repeating-linear-gradient(90deg,rgba(57,236,241,.17) 0 4px,transparent 5px 21px,rgba(255,58,174,.65) 22px 23px,transparent 24px 38px);
+ animation:edgeSignalTear var(--edge-speed) steps(1,end) infinite
+}
+.edge-glitch-fringe{
+ background:
+  linear-gradient(90deg,transparent 3%,rgba(255,58,174,.82) 7%,transparent 11%,rgba(57,236,241,.72) 13%,transparent 19%),
+  repeating-linear-gradient(0deg,transparent 0 17px,rgba(234,255,0,.58) 18px 20px,transparent 21px 34px);
+ animation:edgeSignalFringe calc(var(--edge-speed) * .77) steps(1,end) infinite
+}
+.edge-glitch-static{
+ background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(255,255,255,.3) 3px 4px,transparent 5px 8px);
+ animation:edgeSignalStatic calc(var(--edge-speed) * 1.13) steps(1,end) infinite
+}
+.edge-glitch-corner.top-right i{animation-delay:-1.13s}
+.edge-glitch-corner.bottom-left i{animation-delay:-.59s}
+.edge-glitch-corner.bottom-right i{animation-delay:-2.08s}
+@keyframes edgeSignalTear{
+ 0%,6%,16%,28%,44%,57%,72%,87%,100%{opacity:0;transform:translateX(0);clip-path:inset(0)}
+ 7%,10%{opacity:.92;transform:translateX(var(--edge-shift));clip-path:inset(9% 0 68% 0)}
+ 17%,20%{opacity:.7;transform:translateX(calc(var(--edge-shift) * -.65));clip-path:inset(47% 0 24% 0)}
+ 45%,49%{opacity:.95;transform:translateX(calc(var(--edge-shift) * -.85));clip-path:inset(73% 0 9% 0)}
+ 73%,77%{opacity:.85;transform:translateX(calc(var(--edge-shift) * .8));clip-path:inset(24% 0 43% 0)}
+}
+@keyframes edgeSignalFringe{
+ 0%,13%,31%,46%,65%,80%,100%{opacity:0;transform:translateX(0)}
+ 14%,19%{opacity:.7;transform:translateX(calc(var(--edge-shift) * -.75))}
+ 32%,37%{opacity:.95;transform:translateX(var(--edge-shift))}
+ 66%,72%{opacity:.65;transform:translateX(calc(var(--edge-shift) * -.4))}
+}
+@keyframes edgeSignalStatic{
+ 0%,17%,40%,61%,85%,100%{opacity:0}
+ 18%,25%{opacity:.34;transform:translateY(-4px)}
+ 41%,46%{opacity:.55;transform:translateY(6px)}
+ 62%,68%{opacity:.42;transform:translateY(-8px)}
+}
+@keyframes edgeStaticDrift{
+ 0%,100%{transform:translate(0,0)}
+ 25%{transform:translate(3px,-4px)}
+ 50%{transform:translate(-6px,3px)}
+ 75%{transform:translate(2px,5px)}
+}
+body:not(.motion-on) .edge-glitch{display:none}
+@media(prefers-reduced-motion:reduce){.edge-glitch{display:none!important}}
+@media(max-width:600px){.edge-glitch-corner{width:min(34vw,var(--edge-width));height:min(23vh,var(--edge-height))}}
