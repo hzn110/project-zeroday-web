@@ -28,6 +28,7 @@ async function run(){
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/js/game.js*',async route=>{
   const response=await route.fetch(),original=await response.text();
+  console.log('LIVE_SOURCE_PROBE',JSON.stringify({bytes:original.length,forcedCue:original.includes("tile.style.setProperty('background-color','#ff8c70','important')"),expectedVersion:'4.26.2'}));
   const altered=original.replace(/\}\)\(\);\s*$/,";window.__EX_QA={\n open:(key,mode='easy')=>{clearPuzzleTimers();if(puzzle)closeOverlay();const m=PUZZLES[key];if(!m)throw Error('Unknown '+key);const n={id:'QA_'+key,codename:'QA',type:m.type,key,cleared:false,x:0,y:0};game=makeDevGame(n);game.diff=mode;game.paused=false;devTest=true;devTestKey=key;displayPuzzle(key,n,false);return puzzle.key},\n state:()=>({key:puzzle?.key,solved:puzzle?.solved,phase:game?.phase,mode:game?.diff,trace:game?.trace}),\n pass:()=>solvePuzzle(),\n start:mode=>{clearPuzzleTimers();if(puzzle)closeOverlay();devTest=false;game=null;puzzle=null;diff=mode;startGame();return window.ZERO_DAY_STATUS()},\n toCore:()=>{game.cleared=4;game.lastNodeId='entry';game.edges.push({a:'entry',b:'core'});renderMap();updateHud();openCoreIntel()},\n coreBits:()=>game?.coreBits,\n win:mode=>{clearPuzzleTimers();if(puzzle)closeOverlay();devTest=false;devGameplay=false;game=makeDevGame({id:'QA',type:'normal'});game.diff=mode;game.paused=false;game.duration=mode==='hard'?180:300;game.remaining=80;game.phase='map';endGame(true)},\n rankings:()=>read(STORAGE,[]),\n threshold:()=>MIN_CORE_NODES\n};"+'})();');
   ok(altered!==original,'QA instrument hook not attached');
   await route.fulfill({response,body:altered});
@@ -51,7 +52,9 @@ async function run(){
   await page.evaluate(()=>window.__EX_QA.open('b1','easy'));
   await page.waitForFunction(()=>document.querySelector('.memory-tile.is-cued')!==null,null,{timeout:4500});
   const bg=await page.locator('.memory-tile.is-cued').evaluate(e=>getComputedStyle(e).backgroundColor);
-  ok(bg!=='rgba(0, 0, 0, 0)','invisible cue');
+  const cueDiag=await page.locator('.memory-tile.is-cued').evaluate(e=>({computed:getComputedStyle(e).backgroundColor,inline:e.style.cssText,cls:e.className}));
+  console.log('CUE_DIAG',JSON.stringify(cueDiag));
+  ok(bg!=='rgba(0, 0, 0, 0)','invisible cue '+JSON.stringify(cueDiag));
   await page.waitForFunction(()=>document.querySelector('#memoryState')?.textContent==='INPUT READY',null,{timeout:14000});
   ok(await page.locator('#memoryStart').isEnabled(),'replay disabled');
   return bg;
