@@ -128,7 +128,7 @@ function closeOverlay(){
  overlayMode='';
  puzzle=null;
 }
-function clearPuzzleTimers(){activeTimers.forEach(timer=>{if(timer.kind==='i')clearInterval(timer.id);else clearTimeout(timer.id)});activeTimers=[]}
+function clearPuzzleTimers(){if(puzzle?.memoryStop)puzzle.memoryStop();activeTimers.forEach(timer=>{if(timer.kind==='i')clearInterval(timer.id);else clearTimeout(timer.id)});activeTimers=[]}
 function puzzleTimersBlocked(){return guideOpen||!!game?.paused}
 function suspendPuzzleTimers(){
  const now=performance.now();
@@ -1308,11 +1308,15 @@ PUZZLE_BUILDERS.b1=p=>{
  let cueMs=game.diff==='hard'?balance.firstCueHard:balance.firstCueEasy;
  let gapMs=game.diff==='hard'?balance.firstGapHard:balance.firstGapEasy;
  let pos=0,ready=false,plays=0,sequenceId=0;
+ const memoryTimers=new Set();
+ function memoryLater(fn,ms){const timer=setTimeout(()=>{memoryTimers.delete(timer);if(puzzle===p&&!p.solved)fn()},ms);memoryTimers.add(timer);return timer}
+ function stopMemoryTimers(){memoryTimers.forEach(clearTimeout);memoryTimers.clear()}
+ p.memoryStop=stopMemoryTimers;
  setPuzzleContent(`<div class="memory-sequence">
   <div class="memory-sequence-top"><span class="memory-kicker">MEMORY TRACE / ${path.length} SIGNALS</span><span id="memoryProgress" class="memory-count" aria-live="polite">0 / ${path.length}</span></div>
-  <div class="quiz-instruction" id="memoryMessage" aria-live="polite">숫자와 문자로 표시된 아홉 칸을 확인하고 <strong>패턴 보기</strong>를 누르세요. 각 칸은 밝은 코랄색으로 충분히 점등되며, 다시 보기는 ${fmt(balance.replayCost)}점을 사용해 느리게 볼 수 있습니다.</div>
+  <div class="quiz-instruction" id="memoryMessage" aria-live="polite">퍼즐 진입 시 패턴이 자동 재생됩니다. 점등 순서를 기억하세요. 각 칸은 밝은 코랄색으로 충분히 점등되며, 다시 보기는 ${fmt(balance.replayCost)}점을 사용해 느리게 볼 수 있습니다.</div>
   <div id="memoryGrid" class="puzzle-grid cols3 narrow-grid memory-grid" role="group" aria-label="3행 3열 기억 패널"></div>
-  <div class="quiz-actions memory-actions"><span id="memoryState" class="micro">SIGNAL READY</span><button id="memoryStart" type="button">패턴 보기</button></div>
+  <div class="quiz-actions memory-actions"><span id="memoryState" class="micro">SIGNAL READY</span><button id="memoryStart" type="button" disabled>자동 점등 준비 중...</button></div>
  </div>`);
  const grid=$('#memoryGrid'),startBtn=$('#memoryStart'),message=$('#memoryMessage'),progress=$('#memoryProgress'),state=$('#memoryState');
  const bs=symbols.map((symbol,i)=>{
@@ -1326,9 +1330,9 @@ PUZZLE_BUILDERS.b1=p=>{
     progress.textContent='0 / '+path.length;
     state.textContent='SIGNAL MISMATCH';
     message.textContent='순서가 다릅니다. 첫 번째 칸부터 다시 선택하세요.';
-    failPuzzle('점등된 네 칸의 순서와 다릅니다.');
+    failPuzzle('점등된 '+path.length+'칸의 순서와 다릅니다.');
     const wrongSequenceId=sequenceId;
-    later(()=>{
+    memoryLater(()=>{
      if(!alive(wrongSequenceId))return;
      b.classList.remove('is-wrong');
      ready=true;
@@ -1354,7 +1358,7 @@ PUZZLE_BUILDERS.b1=p=>{
    ready=true;
    progress.textContent='0 / '+path.length;
    state.textContent='INPUT READY';
-   message.textContent='방금 점등된 네 칸을 처음부터 순서대로 누르세요.';
+   message.textContent='방금 점등된 '+path.length+'칸을 처음부터 순서대로 누르세요.';
    startBtn.disabled=false;
    startBtn.textContent='느리게 다시 보기 (-'+fmt(balance.replayCost)+'점)';
    return;
@@ -1364,11 +1368,11 @@ PUZZLE_BUILDERS.b1=p=>{
   tile.setAttribute('aria-label',symbols[path[step]]+' 위치 점등 중');
   message.textContent=(step+1)+'번째 신호 점등 중 — 밝은 코랄색 칸의 위치를 기억하세요.';
   state.textContent='SIGNAL '+(step+1)+' / '+path.length;
-  later(()=>{
+  memoryLater(()=>{
    if(!alive(id))return;
    tile.classList.remove('is-cued');
    tile.setAttribute('aria-label',symbols[path[step]]+' 위치 선택');
-   later(()=>flashNext(step+1,id),gapMs);
+   memoryLater(()=>flashNext(step+1,id),gapMs);
   },cueMs);
  }
  startBtn.onclick=()=>{
@@ -1382,6 +1386,7 @@ PUZZLE_BUILDERS.b1=p=>{
   gapMs=Math.max(140,replay?(game.diff==='hard'?balance.replayGapHard:balance.replayGapEasy):(game.diff==='hard'?balance.firstGapHard:balance.firstGapEasy));
   plays++;
   const id=++sequenceId;
+  stopMemoryTimers();
   ready=false;
   pos=0;
   bs.forEach(tile=>tile.classList.remove('is-cued','is-correct','is-wrong'));
@@ -1390,8 +1395,10 @@ PUZZLE_BUILDERS.b1=p=>{
   message.textContent=replay?'느린 속도로 다시 점등합니다. 코랄색 테두리가 켜지는 위치를 기억하세요.':'빠른 속도로 점등합니다. 코랄색 테두리가 켜지는 위치를 기억하세요.';
   startBtn.disabled=true;
   startBtn.textContent='점등 중...';
-  later(()=>flashNext(0,id),replay?400:180);
+  memoryLater(()=>flashNext(0,id),replay?400:250);
  };
+ // Start automatically after the puzzle grid has been inserted into the DOM.
+ memoryLater(()=>{if(puzzle===p&&!p.solved)startBtn.click()},300);
 };
 // 14 차단: 매 라운드 안전 통로 판별.
 PUZZLE_BUILDERS.b2=p=>{
