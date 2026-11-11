@@ -105,8 +105,28 @@ function sound(name='click') {if(!settings.sound||settings.volume<=0)return;try{
 document.addEventListener('pointerdown',e=>{if(e.target.closest('button'))sound('click')});
 function toast(message,warn=false){let t=$('#toast');t.textContent=message;t.className='toast visible'+(warn?' warn':'');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('visible'),2400)}
 function go(id){if(id==='developer'&&!devAuthenticated)id='menu';screen=id;$$('.screen').forEach(e=>e.classList.toggle('active',e.id===id));window.scrollTo(0,0);if(id==='ranking')renderRanking();if(id==='game')updateHud();}
-function openOverlay(eyebrow,title,body,footer='',mode='intel'){overlayMode=mode;$('#overlay').dataset.mode=mode;$('#overlayEyebrow').textContent=eyebrow;$('#overlayTitle').textContent=title;$('#overlayBody').innerHTML=body;$('#overlayFooter').innerHTML=footer;$('#overlay').classList.remove('hidden');$('#overlayClose').textContent=mode==='core'?'☰ 메뉴':'✕ 닫기';}
-function closeOverlay(){clearPuzzleTimers();$('#overlay').classList.add('hidden');overlayMode='';puzzle=null;}
+function openOverlay(eyebrow,title,body,footer='',mode='intel'){
+ overlayMode=mode;
+ $('#overlay').dataset.mode=mode;
+ $('#overlayEyebrow').textContent=eyebrow;
+ $('#overlayTitle').textContent=title;
+ $('#overlayBody').innerHTML=body;
+ $('#overlayFooter').innerHTML=footer;
+ $('#overlay').classList.remove('hidden');
+ const gameMenuVisible=screen==='game'&&!!game&&!devTest&&['map','core'].includes(game.phase);
+ $('#overlayGameMenu').classList.toggle('hidden',!gameMenuVisible);
+ $('#overlayClose').classList.toggle('hidden',gameMenuVisible&&mode==='core');
+ $('#overlayClose').textContent='✕ 닫기';
+}
+function closeOverlay(){
+ clearPuzzleTimers();
+ $('#overlay').classList.add('hidden');
+ delete $('#overlay').dataset.pauseHidden;
+ $('#overlayGameMenu').classList.add('hidden');
+ $('#overlayClose').classList.remove('hidden');
+ overlayMode='';
+ puzzle=null;
+}
 function clearPuzzleTimers(){activeTimers.forEach(timer=>{if(timer.kind==='i')clearInterval(timer.id);else clearTimeout(timer.id)});activeTimers=[]}
 function puzzleTimersBlocked(){return guideOpen||!!game?.paused}
 function suspendPuzzleTimers(){
@@ -1009,6 +1029,7 @@ function openPause(){
  game.paused=true;
  pauseActive=true;
  suspendPuzzleTimers();
+ const returnFocus=document.activeElement;
  const shade=document.createElement('div');
  shade.className='overlay game-pause-overlay';
  shade.id='pauseShade';
@@ -1050,7 +1071,8 @@ function openPause(){
   resumePuzzleTimers();
   shade.remove();
   frameTime=performance.now();
-  $('#pauseBtn').focus();
+  if(returnFocus&&returnFocus.isConnected)returnFocus.focus();
+  else $('#pauseBtn').focus();
  };
  const cancelExit=()=>{
   $('#pauseExitPrompt').classList.add('hidden');
@@ -1095,7 +1117,7 @@ function openPause(){
  });
  $('#pauseResume').focus();
 }
-$('#pauseBtn').onclick=openPause;$('#overlayClose').onclick=()=>{if(devTest){closeDevPuzzle()}else if(overlayMode==='intel'||overlayMode==='puzzle'){closeOverlay()}else if(overlayMode==='core')openPause()};$('#resultRetry').onclick=()=>go('difficulty');$('#resultRank').onclick=()=>{if(game?.phase==='won'&&!game.saved){$('#nicknameFeedback').className='nickname-feedback bad';$('#nicknameFeedback').textContent='현재 클리어 기록을 랭킹에 남기려면 먼저 닉네임을 등록하세요.';$('#nicknameInput').focus();return}rankDiff=game?.diff||'easy';renderRanking();go('ranking')};
+$('#pauseBtn').onclick=openPause;$('#overlayGameMenu').onclick=openPause;$('#overlayClose').onclick=()=>{if(devTest){closeDevPuzzle()}else if(overlayMode==='intel'||overlayMode==='puzzle'){closeOverlay()}else if(overlayMode==='core')openPause()};$('#resultRetry').onclick=()=>go('difficulty');$('#resultRank').onclick=()=>{if(game?.phase==='won'&&!game.saved){$('#nicknameFeedback').className='nickname-feedback bad';$('#nicknameFeedback').textContent='현재 클리어 기록을 랭킹에 남기려면 먼저 닉네임을 등록하세요.';$('#nicknameInput').focus();return}rankDiff=game?.diff||'easy';renderRanking();go('ranking')};
 function parseRankNumber(value,percent=false){
  if(typeof value!=='number'&&typeof value!=='string')return null;
  let raw=String(value).trim().replace(/,/g,'');
