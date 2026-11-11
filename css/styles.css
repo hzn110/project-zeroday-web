@@ -4932,3 +4932,13 @@ body.motion-on #game.active .edge-glitch{opacity:var(--edge-opacity)}
 body:not(.motion-on) .edge-glitch{display:none}
 @media(prefers-reduced-motion:reduce){.edge-glitch{display:none!important}}
 @media(max-width:600px){.edge-glitch-corner{width:min(34vw,var(--edge-width));height:min(23vh,var(--edge-height))}}
+
+/* Stronger baseline corruption and more frequent logo tearing */
+#menu .v4-glitch-logo.v4-glitching:before{animation-duration:.56s;text-shadow:-5px 0 #0bbde2,3px 0 rgba(57,236,241,.8)}
+#menu .v4-glitch-logo.v4-glitching:after{animation-duration:.56s;text-shadow:5px 0 #ff31aa,-3px 0 rgba(255,49,170,.7)}
+#menu .v4-glitch-logo.v4-glitching{animation-duration:.56s}
+.hard-contact-field{display:flex;flex-direction:column;gap:7px;margin:12px 0;text-align:left}
+.hard-contact-field.hidden{display:none}
+.hard-contact-field label{font-size:12px;font-weight:800;color:var(--cyan)}
+.hard-contact-field input{min-height:42px;width:100%;max-width:320px;padding:9px 12px;border:1px solid #436479;background:#071522;color:#f0f8ff;font:inherit}
+.hard-contact-field small{display:block;font-size:11px;line-height:1.55;color:#9eb9c8}
