@@ -492,7 +492,7 @@ function makeDevGame(fakeNode){
   diff:'easy',phase:'map',duration:9999,remaining:9999,elapsed:0,trace:0,score:0,misses:0,hints:0,
   cleared:0,shield:0,intel:0,reveal:false,coreClue:0,nodes:[fakeNode],edges:[],entry:{x:0,y:0},core:{x:0,y:0},
   totalNodes:1,layerCount:1,entryChoiceCount:1,reserved:{normal:'n1',data:'d1',security:'s1',blocker:'b1'},
-  coreStage:4,coreBits:[],paused:true,seed:413000,saved:false,lastNodeId:'entry'
+  coreStage:4,coreBits:[],paused:false,seed:413000,saved:false,lastNodeId:'entry'
  };
 }
 function openDevPuzzle(key){
