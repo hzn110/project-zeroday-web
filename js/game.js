@@ -1378,6 +1378,7 @@ PUZZLE_BUILDERS.b1=p=>{
   const tile=bs[path[step]];
   tile.classList.add('is-cued');
   // Force the highlight at the element level: a missing or stale stylesheet must not hide the signal.
+  tile.style.setProperty('transition','none','important');
   tile.style.setProperty('background-color','#ff8c70','important');
   tile.style.setProperty('color','#071019','important');
   tile.style.setProperty('border-color','#fff1b5','important');
@@ -1390,7 +1391,7 @@ PUZZLE_BUILDERS.b1=p=>{
   memoryLater(()=>{
    if(!alive(id))return;
    tile.classList.remove('is-cued');
-   ['background-color','color','border-color','border-width','box-shadow','transform'].forEach(prop=>tile.style.removeProperty(prop));
+   ['transition','background-color','color','border-color','border-width','box-shadow','transform'].forEach(prop=>tile.style.removeProperty(prop));
    tile.setAttribute('aria-label',symbols[path[step]]+' 위치 선택');
    memoryLater(()=>flashNext(step+1,id),gapMs);
   },cueMs);
@@ -1411,7 +1412,7 @@ PUZZLE_BUILDERS.b1=p=>{
   pos=0;
   bs.forEach(tile=>{
    tile.classList.remove('is-cued','is-correct','is-wrong');
-   ['background-color','color','border-color','border-width','box-shadow','transform'].forEach(prop=>tile.style.removeProperty(prop));
+   ['transition','background-color','color','border-color','border-width','box-shadow','transform'].forEach(prop=>tile.style.removeProperty(prop));
   });
   progress.textContent=Array(path.length).fill('●').join(' ');
   state.textContent=replay?'SLOW REPLAY / -'+balance.replayCost+' PT':'SEQUENCE PLAYBACK';
