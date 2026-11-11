@@ -1,12 +1,12 @@
 {
-  "testedAt": "2026-11-11T03:08:10.917Z",
-  "site": "https://hzn110.github.io/project-zeroday-web/?exhibition_qa=4.26.3",
+  "testedAt": "2026-11-11T03:42:05.009Z",
+  "site": "https://hzn110.github.io/project-zeroday-web/?exhibition_qa=4.26.4",
   "engine": "Chromium / Playwright",
   "checks": [
     {
       "name": "Live GitHub Pages is deployed, starts without JavaScript errors",
       "status": "PASS",
-      "detail": "js/game.js?v=4.26.3"
+      "detail": "js/game.js?v=4.26.4"
     },
     {
       "name": "Chromium QA browser loads current game",
@@ -184,22 +184,32 @@
       "detail": ""
     },
     {
-      "name": "Defense paths briefly show then conceal solution easy",
+      "name": "Restored defense paths are clearly marked and solvable easy",
       "status": "PASS",
       "detail": ""
     },
     {
-      "name": "Data fragment checksum can be fully solved easy",
+      "name": "Restored sequential fragment puzzle can be solved easy",
       "status": "PASS",
       "detail": ""
     },
     {
-      "name": "Defense paths briefly show then conceal solution hard",
+      "name": "Restored independent power devices can be solved easy",
       "status": "PASS",
       "detail": ""
     },
     {
-      "name": "Data fragment checksum can be fully solved hard",
+      "name": "Restored defense paths are clearly marked and solvable hard",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Restored sequential fragment puzzle can be solved hard",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Restored independent power devices can be solved hard",
       "status": "PASS",
       "detail": ""
     },
@@ -235,7 +245,7 @@
     }
   ],
   "failures": [],
-  "passed": 46,
-  "total": 46,
+  "passed": 48,
+  "total": 48,
   "verdict": "PASS"
 }
