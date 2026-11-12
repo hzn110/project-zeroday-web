@@ -44,7 +44,7 @@ function cloudRecordId(){
  if(typeof crypto!=='undefined'&&typeof crypto.randomUUID==='function')return 'r'+crypto.randomUUID().replace(/-/g,'');
  return 'r'+Array.from({length:32},()=>rnd(0,15).toString(16)).join('');
 }
-function cloudOutbox(){const items=read(CLOUD_OUTBOX,[]);return Array.isArray(items)?items:[]}
+function cloudOutbox(){const items=read(CLOUD_OUTBOX,[]);return Array.isArray(items)?items.filter(entry=>entry?.diff==='easy'):[]}
 function queueCloudRanking(record){
  const entry={id:cloudRecordId(),nickname:String(record.nickname),diff:record.diff,score:Math.round(record.score),time:Math.round(record.time*100)/100,trace:Math.round(record.trace*10)/10,grade:record.grade,date:String(record.date)};
  store(CLOUD_OUTBOX,[...cloudOutbox(),entry].slice(-150));
@@ -135,7 +135,7 @@ function puzzleTune(key){return {...tuneDefaults(key),...(puzzleTuning[key]||{})
 function persistPuzzleTune(){store(PUZZLE_TUNING_STORAGE,puzzleTuning)}
 
 let screen='menu',previousScreen='menu',diff='easy',tutorialStage=0,tutorialSolved=false,game=null,puzzle=null,overlayMode='',pauseActive=false,toastTimer=0,audioCtx=null,frameTime=performance.now(),lastHud=0,activeTimers=[];
-let rankSort='overall',rankDiff='easy';
+let rankSort='overall';
 let devAuthenticated=false,devAttempts=0,devLockUntil=0,devTest=false,devTestKey='',devResults={},devGameplay=false;
 const DEV_PASSWORD_HASH='51c31039';
 function sound(name='click') {if(!settings.sound||settings.volume<=0)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});let notes={click:[[620,.035],[890,.025]],ok:[[660,.055],[970,.09]],bad:[[270,.095],[190,.1]],alert:[[680,.13],[430,.13]],complete:[[520,.1],[740,.13],[1040,.18]]}[name]||[[650,.03]];let when=audioCtx.currentTime+.004;for(let [freq,dur] of notes){let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=name==='bad'?'sawtooth':'square';o.frequency.setValueAtTime(freq,when);o.frequency.exponentialRampToValueAtTime(freq*.88,when+dur);let vol=settings.volume/100*(name==='click'?.034:.050);g.gain.setValueAtTime(.0001,when);g.gain.exponentialRampToValueAtTime(vol,when+.008);g.gain.exponentialRampToValueAtTime(.0001,when+dur);o.connect(g).connect(audioCtx.destination);o.start(when);o.stop(when+dur+.004);when+=dur*.75}}catch{}}
@@ -377,8 +377,6 @@ function renderDevDashboard(){
   $('#devTuningPanel').scrollIntoView({behavior:'smooth',block:'start'});
  });
  renderDevTuneEditor();
- renderDevRankPreview();
- renderDevHardContacts();
 }
 
 function devOutput(message,kind=''){
@@ -433,86 +431,11 @@ function devValidateNetworks(){
   devOutput(`NETWORK QA PASS // 250회 생성 · ENTRY ${minEntry}~${maxEntry}개 · 중간 분기 ${minBranch}~${maxBranch}개 · HOST ${minHosts}~${maxHosts} · CORE 도달 100%`,'good');
  }
 }
-function devSeedRankings(){
- if(!devAuthenticated)return;
- let records=read(STORAGE,[]);if(!Array.isArray(records))records=[];
- const today=new Date().toLocaleDateString('ko-KR');
- // Each QA profile intentionally leads a different metric so sort controls visibly reorder rows.
- const samples=[
-  {nickname:'QA_SCORE_E',diff:'easy',score:9000,time:240,trace:65,grade:'B',date:today},
-  {nickname:'QA_SPEED_E',diff:'easy',score:6200,time:70,trace:50,grade:'A',date:today},
-  {nickname:'QA_STEALTH_E',diff:'easy',score:5000,time:190,trace:5,grade:'S',date:today},
-  {nickname:'QA_SCORE_H',diff:'hard',score:10000,time:170,trace:68,grade:'B',date:today},
-  {nickname:'QA_SPEED_H',diff:'hard',score:7000,time:105,trace:57,grade:'A',date:today},
-  {nickname:'QA_STEALTH_H',diff:'hard',score:5800,time:142,trace:4,grade:'S',date:today}
- ];
- store(STORAGE,[...records,...samples].slice(-150));
- renderDevHardContacts();
- devOutput('RANKING QA // 정렬 검증용 샘플 6개 추가: 점수·시간·추적도 탭마다 순서가 달라집니다.','good');
-}
-
-function renderDevRankPreview(){
- const recent=$('#devRankRecent');
- if(!recent)return;
- const raw=read(STORAGE,[]);
- const records=(Array.isArray(raw)?raw:[]).filter(r=>r&&r.manualEntry===true).slice(-5).reverse();
- recent.innerHTML=records.length?records.map(r=>{
-  const record=normalizeRankingRecord(r,0);
-  if(!record)return '';
-  return `<div class="dev-ranking-entry"><strong>${esc(record.nickname)}</strong><span>${record.diff==='hard'?'HARD':'EASY'}</span><span>${fmt(record.score)} PT</span><span>${formatRankingTime(record.time)}</span><span>TRACE ${record.trace===null?'—':record.trace+'%'}</span><span>GRADE ${esc(record.grade)}</span></div>`;
- }).join(''):'등록된 기록이 없습니다.';
-}
-function renderDevHardContacts(){
- const el=$('#devHardContacts');if(!el)return;
- if(!devAuthenticated){el.textContent='개발자 인증 후 확인할 수 있습니다.';return}
- const raw=read(STORAGE,[]);
- const records=(Array.isArray(raw)?raw:[]).filter(r=>r&&r.diff==='hard'&&normalizeContactPhone(r.contactPhone)).slice().reverse();
- el.innerHTML=records.length?records.map(r=>`<div class="dev-ranking-entry"><strong>${esc(String(r.nickname||'ANON'))}</strong><span>${esc(formatContactPhone(r.contactPhone))}</span><span>${esc(String(r.date||'—'))}</span></div>`).join(''):'전화번호를 등록한 하드모드 기록이 없습니다.';
-}
-function devRegisterRanking(event){
- event?.preventDefault();
- if(!devAuthenticated||screen!=='developer')return;
- const feedback=$('#devRankFeedback');
- const fail=(message,field)=>{
-  feedback.className='dev-ranking-feedback error';
-  feedback.textContent=message;
-  if(field)$('#'+field).focus();
- };
- const nickname=$('#devRankName').value.trim();
- if(!nickname||nickname.length>12||!/^[가-힣A-Za-z0-9_.-]+$/.test(nickname)){
-  fail('닉네임은 한글·영문·숫자·_ . - 만 사용하여 1~12자로 입력하세요.','devRankName');return;
- }
- const difficulty=$('#devRankDiff').value,grade=$('#devRankGrade').value;
- if(!['easy','hard'].includes(difficulty)||!['S','A','B','C'].includes(grade)){
-  fail('난이도와 등급을 선택하세요.');return;
- }
- const numeric=id=>{const raw=$('#'+id).value.trim();return raw===''?NaN:Number(raw)};
- const score=numeric('devRankScore'),minutes=numeric('devRankMinutes'),seconds=numeric('devRankSeconds'),trace=numeric('devRankTrace');
- if(!Number.isInteger(score)||score<0||score>10000000){fail('점수는 0~10,000,000 사이의 정수여야 합니다.','devRankScore');return}
- if(!Number.isInteger(minutes)||minutes<0||minutes>99){fail('시간의 분은 0~99 사이의 정수여야 합니다.','devRankMinutes');return}
- if(!Number.isInteger(seconds)||seconds<0||seconds>59){fail('시간의 초는 0~59 사이의 정수여야 합니다.','devRankSeconds');return}
- if(!Number.isFinite(trace)||trace<0||trace>100||Math.abs(trace*10-Math.round(trace*10))>1e-7){
-  fail('추적도는 0~100% 사이에서 소수 첫째 자리까지 입력하세요.','devRankTrace');return;
- }
- const record={nickname,diff:difficulty,score,time:minutes*60+seconds,trace:Math.round(trace*10)/10,grade,date:new Date().toLocaleDateString('ko-KR'),manualEntry:true};
- const existing=read(STORAGE,[]);
- const records=Array.isArray(existing)?existing:[];
- store(STORAGE,[...records,record].slice(-150));
- feedback.className='dev-ranking-feedback success';
- feedback.textContent=`등록 완료 // ${nickname} · ${difficulty==='hard'?'어려움':'쉬움'} · ${fmt(score)}점 · ${formatRankingTime(record.time)} · TRACE ${record.trace}% · ${grade}등급`;
- devOutput(`RANKING MANUAL ENTRY // ${nickname} 기록이 현재 브라우저 랭킹에 추가되었습니다.`,'good');
- renderDevRankPreview();
- renderDevHardContacts();
- sound('ok');
-}
-
 function devClearRankings(){
  if(!devAuthenticated)return;
  if(confirm('DEV ADMIN // 현재 브라우저의 모든 플레이어 랭킹 기록을 삭제할까요?')){
   store(STORAGE,[]);
   devOutput('ADMIN DATA // 랭킹 기록을 모두 삭제했습니다.','good');
-  renderDevRankPreview();
-  renderDevHardContacts();
   toast('DEV: 랭킹 기록 전체 삭제 완료');
  }
 }
@@ -573,9 +496,7 @@ $('#devResetTests').onclick=()=>{devResults={};renderDevDashboard();toast('개�
 $('#devLaunchEasy').onclick=()=>devLaunchGame('easy');
 $('#devLaunchHard').onclick=()=>devLaunchGame('hard');
 $('#devNetworkScan').onclick=devValidateNetworks;
-$('#devSeedRanking').onclick=devSeedRankings;
 $('#devClearRanking').onclick=devClearRankings;
-$('#devRankForm').addEventListener('submit',devRegisterRanking);
 $('#devResetSettings').onclick=devResetSettings;
 $('#devTunePuzzle').onchange=()=>{devTuneSelectedKey=$('#devTunePuzzle').value;renderDevTuneEditor()};
 $('#devTuneSave').onclick=saveDevTune;
@@ -1195,7 +1116,7 @@ function openPause(){
  });
  $('#pauseResume').focus();
 }
-$('#pauseBtn').onclick=openPause;$('#overlayGameMenu').onclick=openPause;$('#overlayClose').onclick=()=>{if(devTest){closeDevPuzzle()}else if(overlayMode==='intel'||overlayMode==='puzzle'){closeOverlay()}else if(overlayMode==='core')openPause()};$('#resultRetry').onclick=startEasyGame;$('#resultRank').onclick=()=>{if(game?.phase==='won'&&!game.saved){$('#nicknameFeedback').className='nickname-feedback bad';$('#nicknameFeedback').textContent='현재 클리어 기록을 랭킹에 남기려면 먼저 닉네임을 등록하세요.';$('#nicknameInput').focus();return}rankDiff=game?.diff||'easy';renderRanking();go('ranking')};
+$('#pauseBtn').onclick=openPause;$('#overlayGameMenu').onclick=openPause;$('#overlayClose').onclick=()=>{if(devTest){closeDevPuzzle()}else if(overlayMode==='intel'||overlayMode==='puzzle'){closeOverlay()}else if(overlayMode==='core')openPause()};$('#resultRetry').onclick=startEasyGame;$('#resultRank').onclick=()=>{if(game?.phase==='won'&&!game.saved){$('#nicknameFeedback').className='nickname-feedback bad';$('#nicknameFeedback').textContent='현재 클리어 기록을 랭킹에 남기려면 먼저 닉네임을 등록하세요.';$('#nicknameInput').focus();return}renderRanking();go('ranking')};
 function parseRankNumber(value,percent=false){
  if(typeof value!=='number'&&typeof value!=='string')return null;
  let raw=String(value).trim().replace(/,/g,'');
@@ -1251,8 +1172,8 @@ function formatRankingTime(seconds){
 }
 function renderRanking(){
  const serverLive=cloudState.status==='online';
- const raw=serverLive?cloudState.entries[rankDiff]:read(STORAGE,[]);
- const records=(Array.isArray(raw)?raw:[]).map(normalizeRankingRecord).filter(Boolean).filter(r=>r.diff===rankDiff);
+ const raw=serverLive?cloudState.entries.easy:read(STORAGE,[]);
+ const records=(Array.isArray(raw)?raw:[]).map(normalizeRankingRecord).filter(Boolean).filter(r=>r.diff==='easy'&&!String(r.nickname).startsWith('QA_')&&r.manualEntry!==true);
  assignOverallRankingScores(records);
  records.sort((a,b)=>compareRankingRecords(a,b,rankSort));
  const visible=records.slice(0,20);
@@ -1268,7 +1189,7 @@ function renderRanking(){
  </tr>`).join(''):'<tr><td colspan="8" class="rank-empty">해당 난이도에 저장된 기록이 없습니다. 먼저 게임을 클리어하고 닉네임을 등록하세요.</td></tr>';
  const labels={overall:'종합 지수순',score:'최고 점수순',time:'최단 시간순',trace:'최저 추적도순'};
  const rules={overall:'점수 50% · 시간 30% · 추적도 20% | 동률: 점수 → 시간 → 추적도',score:'동점: 소요 시간 → 추적도 → 최신 기록',time:'동률: 점수 → 추적도 → 최신 기록',trace:'동률: 점수 → 소요 시간 → 최신 기록'};
- $('#rankingSummary').textContent=`${rankDiff==='hard'?'어려움':'쉬움'} · ${labels[rankSort]} · ${records.length}개 기록${records.length>20?' (상위 20개 표시)':''}`;
+ $('#rankingSummary').textContent=`쉬움 · ${labels[rankSort]} · ${records.length}개 기록${records.length>20?' (상위 20개 표시)':''}`;
  const status=$('#rankingCloudStatus'),detail=$('#rankingCloudDetail'),bar=$('#rankingCloudBar');
  if(status&&detail&&bar){
   const count=cloudOutbox().length;
@@ -1282,16 +1203,11 @@ function renderRanking(){
   b.classList.toggle('selected',selected);
   b.setAttribute('aria-pressed',String(selected));
  });
- $$('[data-rankdiff]').forEach(b=>{
-  const selected=b.dataset.rankdiff===rankDiff;
-  b.classList.toggle('selected',selected);
-  b.setAttribute('aria-pressed',String(selected));
- });
  $$('[data-rank-column]').forEach(th=>{
   th.setAttribute('aria-sort',th.dataset.rankColumn===rankSort?(rankSort==='score'||rankSort==='overall'?'descending':'ascending'):'none');
  });
 }
-$$('[data-sort]').forEach(b=>b.onclick=()=>{rankSort=b.dataset.sort;renderRanking()});$$('[data-rankdiff]').forEach(b=>b.onclick=()=>{rankDiff=b.dataset.rankdiff;renderRanking()});
+$$('[data-sort]').forEach(b=>b.onclick=()=>{rankSort=b.dataset.sort;renderRanking()});
 function tick(now){let delta=Math.max(0,(now-frameTime)/1000);frameTime=now;if(game&&!game.paused&&!guideOpen&&['map','core'].includes(game.phase)){game.remaining=Math.max(0,game.remaining-delta);game.elapsed+=delta;game.trace=Math.min(100,game.trace+delta*(game.diff==='easy'?.047:.081));if(game.remaining<=0)endGame(false,'제한 시간이 모두 지났습니다.');else if(game.trace>=100)endGame(false,'추적도가 100%에 도달했습니다.');if(now-lastHud>150){lastHud=now;updateHud()}}requestAnimationFrame(tick)}requestAnimationFrame(tick);
 const PUZZLE_BUILDERS={};
 // 01 연결: 통신 조건에 따라 둘만 분류한다.
