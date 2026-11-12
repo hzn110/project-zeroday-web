@@ -1,5 +1,5 @@
 {
-  "testedAt": "2026-11-12T00:17:06.244Z",
+  "testedAt": "2026-11-12T02:24:16.543Z",
   "site": "https://hzn110.github.io/project-zeroday-web/?exhibition_qa=4.27.0",
   "engine": "Chromium / Playwright",
   "checks": [
@@ -240,8 +240,8 @@
     },
     {
       "name": "Cloud adapter is loaded and unconfigured state falls back to local rankings",
-      "status": "PASS",
-      "detail": ""
+      "status": "FAIL",
+      "error": "expected local mode: SERVER LIVE · 전체 기기 실시간 랭킹"
     },
     {
       "name": "Online event switches rankings to server-wide data",
@@ -250,8 +250,8 @@
     },
     {
       "name": "Hard phone number never enters server upload payload",
-      "status": "PASS",
-      "detail": ""
+      "status": "FAIL",
+      "error": "hard result not queued for server"
     },
     {
       "name": "Offline event restores local rankings",
@@ -264,8 +264,17 @@
       "detail": ""
     }
   ],
-  "failures": [],
-  "passed": 52,
+  "failures": [
+    {
+      "name": "Cloud adapter is loaded and unconfigured state falls back to local rankings",
+      "error": "Error: expected local mode: SERVER LIVE · 전체 기기 실시간 랭킹\n    at ok (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:6:30)\n    at /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:154:3\n    at async check (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:7:48)\n    at async run (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:150:2)\n    at async /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:187:16"
+    },
+    {
+      "name": "Hard phone number never enters server upload payload",
+      "error": "Error: hard result not queued for server\n    at ok (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:6:30)\n    at /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:172:3\n    at async check (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:7:48)\n    at async run (/home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:169:2)\n    at async /home/runner/work/project-zeroday-web/project-zeroday-web/tests/exhibition-browser-qa.cjs:187:16"
+    }
+  ],
+  "passed": 50,
   "total": 52,
-  "verdict": "PASS"
+  "verdict": "FAIL"
 }
