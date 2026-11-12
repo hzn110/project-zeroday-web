@@ -4,19 +4,19 @@ const eventName='pzd-cloud-state';
 const firebaseVersion='10.14.1';
 const state={status:'unconfigured',error:'',entries:{easy:[],hard:[]}};
 let databaseApi=null,db=null,user=null,connected=false,connectionKnown=false;
-const loaded={easy:false,hard:false};
+let loaded=false;
 function snapshot(){return {status:state.status,error:state.error,entries:{easy:state.entries.easy.slice(),hard:state.entries.hard.slice()}}}
 function emit(){window.dispatchEvent(new CustomEvent(eventName,{detail:snapshot()}))}
 function status(value,error=''){if(state.status===value&&state.error===error)return;state.status=value;state.error=error;emit()}
 function updateStatus(){
  if(state.status==='error'||state.status==='unconfigured')return;
- status(connected&&user&&loaded.easy&&loaded.hard?'online':connectionKnown&&!connected?'offline':'connecting');
+ status(connected&&user&&loaded?'online':connectionKnown&&!connected?'offline':'connecting');
 }
 function isConfigValid(c){
  return !!(c&&typeof c==='object'&&['apiKey','authDomain','databaseURL','projectId','appId'].every(k=>typeof c[k]==='string'&&c[k].trim()&&!/PASTE_|YOUR_PROJECT|YOUR_DATABASE/.test(c[k]))&&/^https:\/\//.test(c.databaseURL));
 }
 function cleanEntry(raw,id){
- if(!raw||typeof raw!=='object'||!['easy','hard'].includes(raw.diff))return null;
+ if(!raw||typeof raw!=='object'||raw.diff!=='easy')return null;
  const nickname=String(raw.nickname??'');
  if(!/^[가-힣A-Za-z0-9_.-]{1,12}$/.test(nickname))return null;
  const score=Number(raw.score),time=Number(raw.time),trace=Number(raw.trace);
@@ -67,15 +67,13 @@ async function start(){
   dataApi.onValue(dataApi.ref(db,'.info/connected'),snap=>{connected=!!snap.val();connectionKnown=true;updateStatus()},error=>status('error','연결 상태 확인 실패: '+(error.code||error.message)));
   const credential=await authApi.signInAnonymously(authApi.getAuth(app));
   user=credential.user;
-  for(const diff of ['easy','hard']){
-   dataApi.onValue(dataApi.ref(db,'rankings/v1/'+diff),snap=>{
-    const raw=snap.val()||{};
-    state.entries[diff]=Object.entries(raw).map(([id,entry])=>cleanEntry(entry,id)).filter(Boolean).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
-    loaded[diff]=true;
-    emit();
-    updateStatus();
-   },error=>status('error','랭킹 읽기 권한 오류: '+(error.code||error.message)));
-  }
+  dataApi.onValue(dataApi.ref(db,'rankings/v1/easy'),snap=>{
+   const raw=snap.val()||{};
+   state.entries.easy=Object.entries(raw).map(([id,entry])=>cleanEntry(entry,id)).filter(Boolean).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+   loaded=true;
+   emit();
+   updateStatus();
+  },error=>status('error','랭킹 읽기 권한 오류: '+(error.code||error.message)));
   updateStatus();
  }catch(error){
   console.warn('PZD leaderboard unavailable:',error?.code||error?.message||error);
