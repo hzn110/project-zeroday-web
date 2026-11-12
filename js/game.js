@@ -810,20 +810,20 @@ function renderTutorial(){
  const steps=[
   ['네트워크를 살펴보세요','노드를 선택하면 해당 장치의 정보를 확인할 수 있습니다. 노드를 4개 확보하면 중앙 서버 진입이 가능하며, 최대 6개까지 공략할 수 있습니다.',`<div class="training-flow"><span class="train-chip">네트워크 지도</span><span class="train-arrow">→</span><span class="train-chip highlight">노드 선택</span><span class="train-arrow">→</span><span class="train-chip">문제 해결</span></div>`],
   ['노드마다 특성이 달라요','연결은 정보, 데이터는 점수, 보안은 추적도, 차단은 보호 효과를 제공합니다. 더 자세한 내용은 언제든 화면 오른쪽 아래 ? 버튼으로 확인할 수 있습니다.',`<div class="node-guide-training"><div class="node-guide-cards">${nodeGuideCards()}</div></div>`],
-  ['시간과 추적도를 관리하세요','퍼즐을 틀리면 추적도가 올라갑니다. 남은 시간이 0이 되거나 추적도가 100%가 되면 작전이 실패합니다. 보안 노드는 추적도를 낮추는 데 유리합니다.',`<div class="training-flow"><span class="train-chip">남은 시간 <b style="color:var(--yellow)">12:00</b></span><span class="train-chip">추적도 <b style="color:var(--pink)">28%</b></span><span class="train-chip highlight">보상 확보</span></div>`],
+  ['시간과 추적도를 관리하세요','퍼즐을 틀리면 추적도가 올라갑니다. 남은 시간이 0이 되거나 추적도가 100%가 되면 작전이 실패합니다. 보안 노드는 추적도를 낮추는 데 유리합니다.',`<div class="training-flow"><span class="train-chip">남은 시간 <b style="color:var(--yellow)">05:00</b></span><span class="train-chip">추적도 <b style="color:var(--pink)">28%</b></span><span class="train-chip highlight">보상 확보</span></div>`],
   ['간단한 연습 문제','다음 조건을 만족하는 연결을 선택해 보세요. 실제 게임에서는 퍼즐마다 규칙과 힌트를 확인할 수 있습니다.',`<div class="training-message">조건: <b style="color:var(--yellow)">보안 연결 / 포트 번호 443</b></div><div class="training-choices"><button class="outline" data-trainanswer="wrong">포트 80 · 일반 연결</button><button class="outline" data-trainanswer="right">포트 443 · 보안 연결</button><button class="outline" data-trainanswer="wrong">포트 22 · 원격 접속</button></div><div id="trainFeedback" class="feedback" style="text-align:center;margin-top:18px"></div>`]
  ];
  const last=steps.length-1,s=steps[tutorialStage];
  $('#tutorialStepLabel').textContent=`기본 훈련 ${String(tutorialStage+1).padStart(2,'0')} / 0${steps.length}`;
  $('#tutorialTitle').textContent=s[0];$('#tutorialDescription').textContent=s[1];$('#tutorialVisual').innerHTML=s[2];
  $('#tutorialBack').style.visibility=tutorialStage?'visible':'hidden';
- $('#tutorialNext').textContent=tutorialStage===last?'난이도 선택 →':'다음 단계 →';
+ $('#tutorialNext').textContent=tutorialStage===last?'게임 시작 →':'다음 단계 →';
  $('#tutorialNext').disabled=tutorialStage===last&&!tutorialSolved;
  $('#tutorialSkip').style.display='';
  $$('[data-trainanswer]').forEach(b=>b.onclick=()=>{if(b.dataset.trainanswer==='right'){tutorialSolved=true;$('#trainFeedback').textContent='접근 승인! 조건을 올바르게 확인했습니다.';$('#trainFeedback').className='feedback';b.classList.add('selected');$('#tutorialNext').disabled=false;sound('ok')}else{$('#trainFeedback').textContent='조건을 다시 확인하세요. 두 조건을 모두 만족해야 합니다.';$('#trainFeedback').className='feedback warn';sound('bad')}});
 }
-$('#tutorialNext').onclick=()=>{if(tutorialStage<3){tutorialStage++;renderTutorial()}else if(tutorialSolved){store('pzd_v32_tutorial',true);go('difficulty')}};$('#tutorialBack').onclick=()=>{tutorialStage=Math.max(0,tutorialStage-1);renderTutorial()};$('#tutorialSkip').onclick=()=>{tutorialSolved=false;go('difficulty')};$('#diffBack').onclick=()=>{tutorialStage=3;renderTutorial();go('tutorial')};
-$$('[data-difficulty]').forEach(b=>b.onclick=()=>{diff=b.dataset.difficulty;$$('[data-difficulty]').forEach(x=>{let selected=x.dataset.difficulty===diff;x.classList.toggle('selected',selected);x.querySelector('.card-select').textContent=selected?'선택됨 ✓':'선택하기 →'})});$('#launchGame').onclick=startGame;
+function startEasyGame(){diff='easy';startGame()}
+$('#tutorialNext').onclick=()=>{if(tutorialStage<3){tutorialStage++;renderTutorial()}else if(tutorialSolved){store('pzd_v32_tutorial',true);startEasyGame()}};$('#tutorialBack').onclick=()=>{tutorialStage=Math.max(0,tutorialStage-1);renderTutorial()};$('#tutorialSkip').onclick=()=>{tutorialSolved=false;startEasyGame()};
 const NODE_NAMES={
  normal:['PROXY','MAIL','RELAY','GATEWAY','VPN_EDGE','DNS_HUB','REMOTE','UPLINK','BRIDGE','SOCKET'],
  data:['ARCHIVE','CACHE','DEV_DB','VAULT','BACKUP','RECORDS','MIRROR','STORAGE','LEDGER','DUMP'],
@@ -1195,7 +1195,7 @@ function openPause(){
  });
  $('#pauseResume').focus();
 }
-$('#pauseBtn').onclick=openPause;$('#overlayGameMenu').onclick=openPause;$('#overlayClose').onclick=()=>{if(devTest){closeDevPuzzle()}else if(overlayMode==='intel'||overlayMode==='puzzle'){closeOverlay()}else if(overlayMode==='core')openPause()};$('#resultRetry').onclick=()=>go('difficulty');$('#resultRank').onclick=()=>{if(game?.phase==='won'&&!game.saved){$('#nicknameFeedback').className='nickname-feedback bad';$('#nicknameFeedback').textContent='현재 클리어 기록을 랭킹에 남기려면 먼저 닉네임을 등록하세요.';$('#nicknameInput').focus();return}rankDiff=game?.diff||'easy';renderRanking();go('ranking')};
+$('#pauseBtn').onclick=openPause;$('#overlayGameMenu').onclick=openPause;$('#overlayClose').onclick=()=>{if(devTest){closeDevPuzzle()}else if(overlayMode==='intel'||overlayMode==='puzzle'){closeOverlay()}else if(overlayMode==='core')openPause()};$('#resultRetry').onclick=startEasyGame;$('#resultRank').onclick=()=>{if(game?.phase==='won'&&!game.saved){$('#nicknameFeedback').className='nickname-feedback bad';$('#nicknameFeedback').textContent='현재 클리어 기록을 랭킹에 남기려면 먼저 닉네임을 등록하세요.';$('#nicknameInput').focus();return}rankDiff=game?.diff||'easy';renderRanking();go('ranking')};
 function parseRankNumber(value,percent=false){
  if(typeof value!=='number'&&typeof value!=='string')return null;
  let raw=String(value).trim().replace(/,/g,'');
