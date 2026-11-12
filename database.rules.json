@@ -3,9 +3,9 @@
     "rankings": {
       "v1": {
         "$difficulty": {
-          ".read": "$difficulty === 'easy' || $difficulty === 'hard'",
+          ".read": "$difficulty === 'easy'",
           "$recordId": {
-            ".write": "auth != null && !data.exists() && ($difficulty === 'easy' || $difficulty === 'hard')",
+            ".write": "auth != null && !data.exists() && ($difficulty === 'easy')",
             ".validate": "newData.hasChildren(['id', 'nickname', 'diff', 'score', 'time', 'trace', 'grade', 'date', 'createdAt']) && newData.child('id').val() === $recordId && newData.child('diff').val() === $difficulty",
             "id": {
               ".validate": "newData.isString() && newData.val().matches(/^r[a-zA-Z0-9_-]{20,79}$/)"
